@@ -74,8 +74,7 @@ public class PageUploader {
 									.getString("created_by"), rs
 									.getTimestamp("created_on"), rs
 									.getBoolean("scpPage"), rs
-									.getString("scpTitle") == null ? "" : rs
-									.getString("title"), Tags.getTags(rs
+									.getString("scpTitle") == null ? "" : rs.getString("scpTitle"), Tags.getTags(rs
 									.getString("pagename"))));
 				} catch (PSQLException e) {
 					logger.error("Couldn't create page, keep going", e);
