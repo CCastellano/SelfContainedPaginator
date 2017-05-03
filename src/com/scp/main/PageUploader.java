@@ -247,13 +247,17 @@ public class PageUploader {
 					}
 				}
 			}
-			
+			ArrayList<String> removals = new ArrayList<String>();
 			for(String str: pageTitles){
 				if(!pageList.contains(str)){
-					pageTitles.remove(str);
+					removals.add(str);
+				
+					CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deletePage"),str);
+					stmt.executeUpdate();
 				}
-				CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deletePage"),str);
-				stmt.executeUpdate();
+			}
+			for(String str: removals){
+				pageTitles.remove(str);
 			}
 			logger.info("Ending site-wide page gather");
 		} catch (Exception e) {
