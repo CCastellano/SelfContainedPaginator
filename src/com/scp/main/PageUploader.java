@@ -98,6 +98,9 @@ public class PageUploader {
 			listPage();
 			gatherMetadata();
 			uploadSeries();
+			
+			CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deleteOldTags"));
+			stmt.executeUpdate();
 
 		} catch (Exception e) {
 			logger.error("Error checking if update required.", e);
