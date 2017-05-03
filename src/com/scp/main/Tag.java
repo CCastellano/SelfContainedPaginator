@@ -1,6 +1,5 @@
 package com.scp.main;
 
-import java.util.ArrayList;
 
 public class Tag {
 	

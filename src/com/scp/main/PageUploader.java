@@ -6,6 +6,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,6 +29,7 @@ public class PageUploader {
 	private static XmlRpcClientConfigImpl config;
 	private static XmlRpcClient client;
 	private static ArrayList<Page> pages;
+	private static HashSet<String> pageTitles;
 
 	static {
 		config = new XmlRpcClientConfigImpl();
@@ -57,6 +59,7 @@ public class PageUploader {
 	private static void loadPages() {
 		Tags.reloadTags();
 		pages = new ArrayList<Page>();
+		pageTitles = new HashSet<String>();
 		try {
 			CloseableStatement stmt = Connector.getStatement(Queries
 					.getQuery("getStoredPages"));
@@ -65,6 +68,7 @@ public class PageUploader {
 			while (rs != null && rs.next()) {
 
 				try {
+					pageTitles.add(rs.getString("pagename"));
 					pages.add(new Page(rs.getString("pagename") == null ? ""
 							: rs.getString("pagename"),
 							rs.getString("title") == null ? "" : rs
@@ -178,15 +182,32 @@ public class PageUploader {
 		try {
 			logger.info("Gathering metadata.");
 			int j = 0;
+			long minute = System.currentTimeMillis();
+			int maxRequests = 200;
+			int currentRequests = 0;
 			Page[] pageSet = new Page[10];
 			for (Page str : pages) {
-				if (j < 10) {
-					pageSet[j] = str;
-					j++;
-				} else {
-					getPageInfo(pageSet);
-					pageSet = new Page[10];
-					j = 0;
+				if(pageTitles.contains(str)){
+					if (j < 10) {
+						pageSet[j] = str;
+						j++;
+					} else {
+						while(currentRequests >= maxRequests){
+							Thread.sleep(1000);
+							if((System.currentTimeMillis() - minute) > (60 * 1000)){
+								minute = System.currentTimeMillis();
+								currentRequests = 0;
+							}
+						}
+						if((System.currentTimeMillis() - minute) > (60 * 1000)){
+							minute = System.currentTimeMillis();
+							currentRequests = 0;
+						}
+						currentRequests += 1;
+						getPageInfo(pageSet);
+						pageSet = new Page[10];
+						j = 0;
+					}
 				}
 			}
 			logger.info("Finished gathering metadata");
@@ -196,6 +217,8 @@ public class PageUploader {
 					e);
 		}
 	}
+	
+	
 
 	private static Object pushToAPI(String method, Object... params)
 			throws XmlRpcException {
@@ -209,11 +232,10 @@ public class PageUploader {
 			logger.info("Beginning site-wide page gather");
 			Object[] result = (Object[]) pushToAPI("pages.select", params);
 			// Convert result to a String[]
-			String[] pageList = new String[result.length];
+			HashSet<String> pageList = new HashSet<String>();
 			for (int i = 0; i < result.length; i++) {
-				pageList[i] = (String) result[i];
+				pageList.add( (String) result[i]);
 			}
-			logger.info(pageList.length);
 			for (String str : pageList) {
 				try {
 					CloseableStatement stmt = Connector.getStatement(
@@ -224,6 +246,14 @@ public class PageUploader {
 						logger.error("Couldn't insert page name", e);
 					}
 				}
+			}
+			
+			for(String str: pageTitles){
+				if(!pageList.contains(str)){
+					pageTitles.remove(str);
+				}
+				CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deletePage"),str);
+				stmt.executeUpdate();
 			}
 			logger.info("Ending site-wide page gather");
 		} catch (Exception e) {
@@ -252,15 +282,7 @@ public class PageUploader {
 			HashMap<String, HashMap<String, Object>> result = (HashMap<String, HashMap<String, Object>>) pushToAPI(
 					"pages.get_meta", params);
 
-			StringBuilder returnString = new StringBuilder();
-			
 			for (String targetName : result.keySet()) {
-				Page p = null;
-				for (Page page : pages) {
-					if (targetName.equals(page.getPageLink())) {
-						p = page;
-					}
-				}
 				try {
 					// String title = (String)
 					// result.get(targetName).get("title");
