@@ -99,7 +99,7 @@ public class PageUploader {
 			gatherMetadata();
 			uploadSeries();
 			
-			CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deleteOldTags"));
+			CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deleteOldtags"));
 			stmt.executeUpdate();
 
 		} catch (Exception e) {
@@ -190,7 +190,7 @@ public class PageUploader {
 			int currentRequests = 0;
 			Page[] pageSet = new Page[10];
 			for (Page str : pages) {
-				if(pageTitles.contains(str)){
+				if(pageTitles.contains(str.getPageLink())){
 					if (j < 10) {
 						pageSet[j] = str;
 						j++;
