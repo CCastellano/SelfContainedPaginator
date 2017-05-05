@@ -57,7 +57,6 @@ public class PageUploader {
 	}
 
 	private static void loadPages() {
-		Tags.reloadTags();
 		pages = new ArrayList<Page>();
 		pageTitles = new HashSet<String>();
 		try {
@@ -78,8 +77,8 @@ public class PageUploader {
 									.getString("created_by"), rs
 									.getTimestamp("created_on"), rs
 									.getBoolean("scpPage"), rs
-									.getString("scpTitle") == null ? "" : rs.getString("scpTitle"), Tags.getTags(rs
-									.getString("pagename"))));
+									.getString("scpTitle") == null ? "" : rs.getString("scpTitle"),
+									Tags.getTags(rs.getString("pagename"))));
 				} catch (PSQLException e) {
 					logger.error("Couldn't create page, keep going", e);
 				}
@@ -305,30 +304,25 @@ public class PageUploader {
 					Object[] tags = (Object[]) result.get(targetName).get(
 							"tags");
 
-					ArrayList<Object> insertTags = new ArrayList<Object>();
-					ArrayList<Tag> deleteTags = new ArrayList<Tag>();
-					ArrayList<Tag> dbTags = Tags.getTags(targetName);
+					ArrayList<String> insertTags = new ArrayList<String>();
+					ArrayList<String> deleteTags = new ArrayList<String>();
+					ArrayList<String> dbTags = Tags.getTags(targetName);
+					ArrayList<String> currentTags = new ArrayList<String>();
 
 					for (Object obj : tags) {
+						currentTags.add(obj.toString());
 						if (!dbTags.contains(obj.toString())) {
-							insertTags.add(obj);
+							insertTags.add(obj.toString());
 						}
 					}
 
-					for (Tag tag : dbTags) {
-						boolean keep = false;
-						for (int i = 0; i < tags.length; i++) {
-							if (tags[i].toString()
-									.equalsIgnoreCase(tag.tagName)) {
-								keep = true;
-							}
-						}
-						if (!keep) {
+					for (String tag : dbTags) {
+						if(!currentTags.contains(tag)){
 							deleteTags.add(tag);
 						}
 					}
 
-					for (Object obj : insertTags) {
+					for (String obj : insertTags) {
 						try {
 							CloseableStatement stmt = Connector.getStatement(
 									Queries.getQuery("insertPageTag"),

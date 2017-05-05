@@ -15,7 +15,7 @@ public class Page {
 	private Boolean scpPage = false;
 	private String scpTitle;
 	
-	private ArrayList<Tag> tags;
+	private ArrayList<String> tags;
 
 	/**
 	 * 
@@ -28,7 +28,7 @@ public class Page {
 	 * @param scpTitle If above is true, this is the title from the series page
 	 */
 	public Page (String pageLink, String title, Integer rating, String createdBy,
-			java.sql.Timestamp createdAt, Boolean scpPage, String scpTitle, ArrayList<Tag> tags){
+			java.sql.Timestamp createdAt, Boolean scpPage, String scpTitle, ArrayList<String> tags){
 		this.pageLink = pageLink;
 		this.title = title;
 		this.rating = rating;
@@ -112,7 +112,7 @@ public class Page {
 		return scpTitle;
 	}
 	
-	public void setTags(ArrayList<Tag> tags){
+	public void setTags(ArrayList<String> tags){
 		this.tags = tags;
 	}
 	
@@ -124,7 +124,7 @@ public class Page {
 		this.scpPage = page;
 	}
 	
-	public ArrayList<Tag> getTags(){
+	public ArrayList<String> getTags(){
 		return tags;
 	}
 	
