@@ -311,7 +311,7 @@ public class PageUploader {
 
 					for (Object obj : tags) {
 						currentTags.add(obj.toString());
-						if (!dbTags.contains(obj.toString())) {
+						if (!dbTags.contains(obj.toString()) && obj != null) {
 							insertTags.add(obj.toString());
 						}
 					}
@@ -332,6 +332,8 @@ public class PageUploader {
 							if (!e.getMessage().contains("unique")) {
 								logger.error(
 										"There was a problem inserting tags", e);
+							}else if(e.getMessage().contains("not-null")){
+								logger.error("There was a tagid issue for: " + result.get(targetName));
 							}
 						}
 					}
