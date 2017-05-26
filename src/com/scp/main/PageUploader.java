@@ -324,6 +324,7 @@ public class PageUploader {
 
 					for (String obj : insertTags) {
 						try {
+							logger.info("CURRENT TAG: " + obj);
 							CloseableStatement stmt = Connector.getStatement(
 									Queries.getQuery("insertPageTag"),
 									targetName, obj.toString());
