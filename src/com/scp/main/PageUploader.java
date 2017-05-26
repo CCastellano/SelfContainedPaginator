@@ -330,10 +330,18 @@ public class PageUploader {
 							stmt.executeUpdate();
 						} catch (PSQLException e) {
 							if (!e.getMessage().contains("unique")) {
-								logger.error(
-										"There was a problem inserting tags", e);
-							}else if(e.getMessage().contains("not-null")){
-								logger.error("There was a tagid issue for: " + result.get(targetName));
+								if (e.getMessage().contains("not-null")) {
+									StringBuilder str = new StringBuilder();
+									for(Object o : (Object[])result.get(targetName).get("tags")){
+										str.append(o + ", ");
+									}
+									logger.error("There was a tagid issue for: " + result.get(targetName) + " tags: " + str.toString());
+
+
+								} else {
+									logger.error(
+											"There was a problem inserting tags", e);
+								}
 							}
 						}
 					}
