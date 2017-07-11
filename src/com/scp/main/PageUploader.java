@@ -355,7 +355,11 @@ public class PageUploader {
 								Queries.getQuery("deletePageTag"), targetName,
 								obj.toString());
 						stmt.executeUpdate();
+						
 					}
+					Connector.getStatement(Queries.getQuery("sanitizeTags")).executeUpdate();
+					
+					
 
 					CloseableStatement stmt = Connector
 							.getStatement(
