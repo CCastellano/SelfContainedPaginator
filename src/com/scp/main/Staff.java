@@ -6,9 +6,9 @@ public class Staff {
 
     private String username;
     private List<String> teams;
-    private String timeZone;
-    private String activityLevel;
-    private String contactMethods;
+    private String timeZone = "";
+    private String activityLevel = "";
+    private String contactMethods = "";
 
     public Integer getStaff_id() {
         return staff_id;
