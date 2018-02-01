@@ -113,8 +113,10 @@ public class StafflistExtractor {
         //System.out.println("Staff size: " + currentStaff.size() + " teams: " + staffTeams.size());
         for(Staff staff: staffList){
             try {
+
                // System.out.println(staff.toString());
                 if (currentStaff.contains(staff)) {
+                    staff.setStaff_id(currentStaff.get(currentStaff.indexOf(staff)).getStaff_id());
                     updateStaff(staff);
           //          System.out.println("Updated staff for: " + staff.getUsername());
                 } else {
@@ -195,6 +197,9 @@ public class StafflistExtractor {
 
     private static void updateStaff(Staff staff){
         try{
+            if(staff.getStaff_id() == null){
+                System.out.println("Issue");
+            }
             CloseableStatement stmt = Connector.getStatement(Queries.getQuery("update_staff"),
                     staff.getUsername(),staff.getTimeZone(), staff.getContactMethods(),staff.getActivityLevel(), staff.getLevel(), staff.getStaff_id());
             stmt.executeUpdate();
