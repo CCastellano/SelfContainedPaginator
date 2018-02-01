@@ -73,8 +73,10 @@ public class StafflistExtractor {
                 staffTeams.computeIfAbsent(rs.getString("team_name"), k -> staffTeams.put(k, new ArrayList<Integer>()));
                 staffTeams.get(rs.getString("team_name")).add(rs.getInt("staff_id"));
             }
-        } catch (
-                Exception e) {
+            logger.info("staffTeams: " + staffTeams.keySet());
+            stmt.close();
+            rs.close();
+        } catch (Exception e) {
         }
 
     }
