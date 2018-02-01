@@ -60,6 +60,7 @@ public class Connector {
 			return new CloseableStatement(stmt, conn);
 		} catch (Exception e) {
 			logger.error("Error constructing statement.", e);
+			e.printStackTrace();
 		}
 		return null;
 	}
