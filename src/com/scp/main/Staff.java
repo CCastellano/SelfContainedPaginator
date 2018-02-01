@@ -8,7 +8,7 @@ public class Staff {
     private List<String> teams;
     private String timeZone;
     private String activityLevel;
-    private List<String> contactMethods;
+    private String contactMethods;
 
     public Integer getStaff_id() {
         return staff_id;
@@ -72,11 +72,11 @@ public class Staff {
         this.activityLevel = activityLevel;
     }
 
-    public List<String> getContactMethods() {
+    public String getContactMethods() {
         return contactMethods;
     }
 
-    public void setContactMethods(List<String> contactMethods) {
+    public void setContactMethods(String contactMethods) {
         this.contactMethods = contactMethods;
     }
 

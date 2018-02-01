@@ -52,7 +52,7 @@ public class StafflistExtractor {
                 Staff staffMember = new Staff();
                 staffMember.setUsername(rs.getString("username"));
                 staffMember.setTimeZone(rs.getString("timezone"));
-                staffMember.setContactMethods(Arrays.asList(rs.getString("contact_methods").split(",")));
+                staffMember.setContactMethods(rs.getString("contact_methods"));
                 staffMember.setActivityLevel(rs.getString("activity_level"));
                 staffMember.setStaff_id(rs.getInt("staff_id"));
             }
@@ -292,7 +292,7 @@ public class StafflistExtractor {
                 matcher.matches();
                 if (!matcher.group(1).isEmpty()) {
                     if (!rejected.contains(matcher.group(1).toLowerCase())) {
-                        staffMember.setContactMethods(Arrays.asList(matcher.group(1).split(",")));
+                        staffMember.setContactMethods(matcher.group(1));
                     }
                 }
                 //System.out.println("Contacts " + line);
