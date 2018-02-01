@@ -87,7 +87,7 @@ public class StafflistExtractor {
         clearCaptains();
 
 
-        url = new URL("http://scp-sandbox-3.wikidot.com/tretterstaff");
+        url = new URL("http://05command.wikidot.com/staff-list");
         is = url.openStream();  // throws an IOException
         br = new BufferedReader(new InputStreamReader(is));
 
@@ -116,25 +116,29 @@ public class StafflistExtractor {
                     staff.setStaff_id(addStaff(staff));
                     System.out.println("Inserted staff for: " + staff.getUsername());
                 }
-                System.out.println(staff.getTeams());
-                for (String team : staff.getTeams()) {
-                    team = team.trim();
-                    if (!staffTeams.containsKey(team)) {
-                        addTeam(team);
-                        staffTeams.put(team, new ArrayList<Integer>());
-                        System.out.println("Added team: " + team);
-                        addStaffToTeam(team, staff.getStaff_id());
-                        System.out.println("Added user to team: " + team + ": " + staff.getUsername());
-
-                    } else {
-                        if (staff.getStaff_id() != null && !staffTeams.get(team).contains(staff.getStaff_id())) {
+                if(staff.getTeams() != null) {
+                    System.out.println(staff.getTeams());
+                    for (String team : staff.getTeams()) {
+                        team = team.trim();
+                        if (!staffTeams.containsKey(team)) {
+                            addTeam(team);
+                            staffTeams.put(team, new ArrayList<Integer>());
+                            System.out.println("Added team: " + team);
                             addStaffToTeam(team, staff.getStaff_id());
+                            System.out.println("Added user to team: " + team + ": " + staff.getUsername());
+
+                        } else {
+                            if (staff.getStaff_id() != null && !staffTeams.get(team).contains(staff.getStaff_id())) {
+                                addStaffToTeam(team, staff.getStaff_id());
+                            }
                         }
                     }
                 }
-                for (String captaincies : staff.getCaptaincies()) {
-                    captaincies = captaincies.trim();
-                    insertCaptain(captaincies, staff.getStaff_id());
+                if(staff.getCaptaincies() != null) {
+                    for (String captaincies : staff.getCaptaincies()) {
+                        captaincies = captaincies.trim();
+                        insertCaptain(captaincies, staff.getStaff_id());
+                    }
                 }
             }catch(Exception e){
                 System.out.println("Exception!");
