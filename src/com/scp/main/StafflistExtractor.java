@@ -110,27 +110,27 @@ public class StafflistExtractor {
             }
         }
 
-        System.out.println("Staff size: " + currentStaff.size() + " teams: " + staffTeams.size());
+        //System.out.println("Staff size: " + currentStaff.size() + " teams: " + staffTeams.size());
         for(Staff staff: staffList){
             try {
-                System.out.println(staff.toString());
+               // System.out.println(staff.toString());
                 if (currentStaff.contains(staff)) {
                     updateStaff(staff);
-                    System.out.println("Updated staff for: " + staff.getUsername());
+          //          System.out.println("Updated staff for: " + staff.getUsername());
                 } else {
                     staff.setStaff_id(addStaff(staff));
-                    System.out.println("Inserted staff for: " + staff.getUsername());
+            //        System.out.println("Inserted staff for: " + staff.getUsername());
                 }
                 if(staff.getTeams() != null) {
-                    System.out.println(staff.getTeams());
+              //      System.out.println(staff.getTeams());
                     for (String team : staff.getTeams()) {
                         team = team.trim();
                         if (!staffTeams.containsKey(team)) {
                             addTeam(team);
                             staffTeams.put(team, new ArrayList<Integer>());
-                            System.out.println("Added team: " + team);
+                //            System.out.println("Added team: " + team);
                             addStaffToTeam(team, staff.getStaff_id());
-                            System.out.println("Added user to team: " + team + ": " + staff.getUsername());
+                  //          System.out.println("Added user to team: " + team + ": " + staff.getUsername());
 
                         } else {
                             if (staff.getStaff_id() != null && !staffTeams.get(team).contains(staff.getStaff_id())) {
@@ -140,8 +140,11 @@ public class StafflistExtractor {
                     }
                 }
                 if(staff.getCaptaincies() != null) {
+                    logger.info("Captaincy for user: " + staff.getUsername());
                     for (String captaincies : staff.getCaptaincies()) {
                         captaincies = captaincies.trim();
+                        logger.info("Captaincy: " + captaincies);
+
                         insertCaptain(captaincies, staff.getStaff_id());
                         logger.info("Inserted captaincy for user.");
                     }
