@@ -3,6 +3,7 @@ package com.scp.main;
 import com.scp.connection.CloseableStatement;
 import com.scp.connection.Connector;
 import com.scp.connection.Queries;
+import org.apache.log4j.Logger;
 
 import java.io.BufferedReader;
 import java.io.InputStream;
@@ -17,6 +18,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class StafflistExtractor {
+
+    private final static Logger logger = Logger.getLogger(StafflistExtractor.class);
 
 
     final static String userregex = ".*user:info\\/(.*)\\\"\\s.*";
@@ -165,20 +168,20 @@ public class StafflistExtractor {
             stmt.executeUpdate();
             stmt.close();
         }catch(Exception e){
-            e.printStackTrace();
+            logger.error("Exception: ",e);
         }
     }
 
     private static Integer addStaff(Staff staff){
         try{
             CloseableStatement stmt = Connector.getStatement(Queries.getQuery("insert_staff"),
-                    staff.getUsername(),staff.getTimeZone(), staff.getContactMethods(),staff.getActivityLevel());
+                    staff.getUsername(),staff.getTimeZone(), staff.getContactMethods(),staff.getActivityLevel(), staff.getLevel());
             ResultSet rs = stmt.execute();
             Integer value =  rs != null && rs.next() ? rs.getInt("staff_id") : -1;
             rs.close();
             return value;
         }catch(Exception e){
-            e.printStackTrace();
+            logger.error("Exception: ",e);
         }
         return -1;
     }
@@ -186,7 +189,7 @@ public class StafflistExtractor {
     private static void updateStaff(Staff staff){
         try{
             CloseableStatement stmt = Connector.getStatement(Queries.getQuery("update_staff"),
-                    staff.getUsername(),staff.getTimeZone(), staff.getContactMethods(),staff.getActivityLevel(), staff.getStaff_id());
+                    staff.getUsername(),staff.getTimeZone(), staff.getContactMethods(),staff.getActivityLevel(), staff.getLevel(), staff.getStaff_id());
             stmt.executeUpdate();
             stmt.close();
         }catch(Exception e){
