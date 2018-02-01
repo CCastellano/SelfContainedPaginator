@@ -139,6 +139,7 @@ public class StafflistExtractor {
                         }
                     }
                 }
+                logger.info("checking captaincies for user: " + staff.getUsername());
                 if(staff.getCaptaincies() != null) {
                     logger.info("Captaincy for user: " + staff.getUsername());
                     for (String captaincies : staff.getCaptaincies()) {
