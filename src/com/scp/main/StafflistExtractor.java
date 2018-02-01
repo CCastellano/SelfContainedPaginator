@@ -193,8 +193,7 @@ public class StafflistExtractor {
             stmt.executeUpdate();
             stmt.close();
         }catch(Exception e){
-            e.printStackTrace();
-        }
+            logger.error("Exception: ",e);        }
     }
 
     private static void addTeam(String teamName){
@@ -203,8 +202,7 @@ public class StafflistExtractor {
             stmt.executeUpdate();
             stmt.close();
         }catch(Exception e){
-            e.printStackTrace();
-        }
+            logger.error("Exception: ",e);        }
     }
 
     private static void addStaffToTeam(String teamName, int staffid){
@@ -213,8 +211,7 @@ public class StafflistExtractor {
             stmt.executeUpdate();
             stmt.close();
         }catch(Exception e){
-            e.printStackTrace();
-        }
+            logger.error("Exception: ",e);        }
     }
 
     private static void clearCaptains(){
@@ -223,8 +220,7 @@ public class StafflistExtractor {
             stmt.executeUpdate();
             stmt.close();
         }catch(Exception e){
-            e.printStackTrace();
-        }
+            logger.error("Exception: ",e);        }
     }
 
     private static void insertCaptain(String team, Integer staffID){
@@ -233,8 +229,7 @@ public class StafflistExtractor {
             stmt.executeUpdate();
             stmt.close();
         }catch(Exception e){
-            e.printStackTrace();
-        }
+            logger.error("Exception: ",e);        }
     }
 
     private static String dataRegex = "<td>(.*)<.*";
