@@ -236,7 +236,8 @@ public class StafflistExtractor {
             stmt.executeUpdate();
             stmt.close();
         }catch(Exception e){
-            logger.error("Exception: ",e);        }
+            System.out.println("Exception!");
+        e.printStackTrace();}
     }
 
     private static String dataRegex = "<td>(.*)<.*";
