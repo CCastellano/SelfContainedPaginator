@@ -55,9 +55,10 @@ public class StafflistExtractor {
                 staffMember.setContactMethods(rs.getString("contact_methods"));
                 staffMember.setActivityLevel(rs.getString("activity_level"));
                 staffMember.setStaff_id(rs.getInt("staff_id"));
+                currentStaff.add(staffMember);
             }
         } catch (Exception e) {
-
+            e.printStackTrace();
         }
     }
 
@@ -105,8 +106,8 @@ public class StafflistExtractor {
         }
 
         System.out.println("Staff size: " + currentStaff.size() + " teams: " + staffTeams.size());
-
         for(Staff staff: staffList){
+            System.out.println(staff.toString());
             if(currentStaff.contains(staff)){
                 updateStaff(staff);
                 System.out.println("Updated staff for: " + staff.getUsername());
