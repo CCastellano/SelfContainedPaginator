@@ -114,7 +114,7 @@ public class StafflistExtractor {
                 staff.setStaff_id(addStaff(staff));
                 System.out.println("Inserted staff for: " + staff.getUsername());
             }
-
+            System.out.println(staff.getTeams());
             for(String team: staff.getTeams()){
                 team = team.trim();
                 if(!staffTeams.containsKey(team)){
