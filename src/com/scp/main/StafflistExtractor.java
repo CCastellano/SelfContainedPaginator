@@ -104,29 +104,25 @@ public class StafflistExtractor {
             }
         }
 
-        for (Staff staff : staffList) {
-            System.out.println(staff.toString());
-        }
-        for (String s : activityTypes) {
-            System.out.println(s);
-        }
-        for (String s : timeZones) {
-            System.out.println(s);
-        }
+        System.out.println("Staff size: " + currentStaff.size() + " teams: " + staffTeams.size());
 
         for(Staff staff: staffList){
             if(currentStaff.contains(staff)){
                 updateStaff(staff);
+                System.out.println("Updated staff for: " + staff.getUsername());
             }else{
                 staff.setStaff_id(addStaff(staff));
+                System.out.println("Inserted staff for: " + staff.getUsername());
             }
 
             for(String team: staff.getTeams()){
                 team = team.trim();
                 if(!staffTeams.containsKey(team)){
                     addTeam(team);
+                    staffTeams.put(team,new ArrayList<Integer>());
+                    System.out.println("Added team: " + team);
                     addStaffToTeam(team,staff.getStaff_id());
-
+                    System.out.println("Added user to team: " + team + ": " + staff.getUsername());
 
                 }else{
                     if(staff.getStaff_id() != null && !staffTeams.get(team).contains(staff.getStaff_id())){
@@ -248,7 +244,7 @@ public class StafflistExtractor {
             if (line.contains("user:info")) {
                 final Matcher matcher = pattern.matcher(line);
                 if (matcher.find()) {
-                    System.out.println("User " + matcher.group(1));
+                    //System.out.println("User " + matcher.group(1));
                     staffMember.setUsername(matcher.group(1));
                 }
             }
