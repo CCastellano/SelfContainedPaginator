@@ -1,4 +1,4 @@
-package com.scp;
+package com.scp.main;
 
 import java.util.List;
 
@@ -9,6 +9,26 @@ public class Staff {
     private String timeZone;
     private String activityLevel;
     private List<String> contactMethods;
+
+    public Integer getStaff_id() {
+        return staff_id;
+    }
+
+    public void setStaff_id(Integer staff_id) {
+        this.staff_id = staff_id;
+    }
+
+    private Integer staff_id;
+
+    public List<String> getCaptaincies() {
+        return captaincies;
+    }
+
+    public void setCaptaincies(List<String> captaincies) {
+        this.captaincies = captaincies;
+    }
+
+    private List<String> captaincies;
 
     public String getLevel() {
         return level;
@@ -25,7 +45,7 @@ public class Staff {
     }
 
     public void setUsername(String username) {
-        this.username = username;
+        this.username = username.trim();
     }
 
     public List<String> getTeams() {
@@ -41,7 +61,7 @@ public class Staff {
     }
 
     public void setTimeZone(String timeZone) {
-        this.timeZone = timeZone;
+        this.timeZone = timeZone.trim();
     }
 
     public String getActivityLevel() {
@@ -78,6 +98,14 @@ public class Staff {
         if(contactMethods != null && !contactMethods.isEmpty() ){
             sb.append(" | Contact Methods: " + contactMethods.toString());
         }
+        if(captaincies != null && !captaincies.isEmpty() ){
+            sb.append(" | Captaincies: " + captaincies.toString());
+        }
         return sb.toString();
+    }
+
+    @Override
+    public boolean equals(Object staff){
+        return staff instanceof Staff && ((Staff)staff).getUsername().equalsIgnoreCase(this.username);
     }
 }
