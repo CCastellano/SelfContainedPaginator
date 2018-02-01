@@ -143,6 +143,7 @@ public class StafflistExtractor {
                     for (String captaincies : staff.getCaptaincies()) {
                         captaincies = captaincies.trim();
                         insertCaptain(captaincies, staff.getStaff_id());
+                        logger.info("Inserted captaincy for user.");
                     }
                 }
             }catch(Exception e){
