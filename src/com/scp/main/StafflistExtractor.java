@@ -139,15 +139,15 @@ public class StafflistExtractor {
                         }
                     }
                 }
-                logger.info("checking captaincies for user: " + staff.getUsername());
+                System.out.println("checking captaincies for user: " + staff.getUsername());
                 if(staff.getCaptaincies() != null) {
-                    logger.info("Captaincy for user: " + staff.getUsername());
+                    System.out.println("Captaincy for user: " + staff.getUsername());
                     for (String captaincies : staff.getCaptaincies()) {
                         captaincies = captaincies.trim();
-                        logger.info("Captaincy: " + captaincies);
+                        System.out.println("Captaincy: " + captaincies);
 
                         insertCaptain(captaincies, staff.getStaff_id());
-                        logger.info("Inserted captaincy for user.");
+                        System.out.println("Inserted captaincy for user.");
                     }
                 }
             }catch(Exception e){
