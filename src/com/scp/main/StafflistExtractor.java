@@ -333,4 +333,8 @@ public class StafflistExtractor {
         }
 
     }
+
+    public static void main(String[] args) throws Exception{
+        updateStaff();
+    }
 }
