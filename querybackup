@@ -18,7 +18,7 @@ insert into queries (query_name, query) values ('kvQuery', 'select * from proper
  insert into queries (query_name, query) values ('insertRoll', 'insert into roll (rollid, value, size) values (?,?,?);');
  insert into queries (query_name, query) values ('average', 'select round(avg(roll),2) from roll, rolls where size = ? and rollid in (select rollid from rolls where username = ?)');
 
-insert into queries (query_name,query) values ('insert_captain','insert into captains (team_id, staff_id) values (select team_id from teams where team_name = ?,?);');
+insert into queries (query_name,query) values ('insert_captain','insert into captains (team_id, staff_id) values ((select team_id from teams where team_name = ?),?);');
  insert into queries (query_name, query) values ('updatePush', 'update properties set value = ?, public = ? where key = ?;');
  insert into queries (query_name, query) values ('getRolls', 'select rollid, size, bonus, text, username from roll, rolls where roll.rollid in (select rolls.rollid from rolls where username = ? limit 20) and username = ?;');
  insert into queries (query_name, query) values ('getStoredPages', 'select * from pages;');
@@ -29,7 +29,7 @@ insert into queries (query_name,query) values ('insert_captain','insert into cap
  insert into queries (query_name, query) values ('getPageByName', 'select * from pages where pagename = ?;');
  insert into queries (query_name, query) values ('deletePage', 'delete from pages where pagename = ?;');
  insert into queries (query_name, query) values ('getPronouns', 'select pronoun, accepted from pronouns, pronoun where pronouns.username = ? and pronoun.pronounid = pronouns.pronounid;');
- insert into queries (query_name, query) values ('deleteNouns', 'delete from pronoun where pronounid = (select pronounid from pronouns where username = ?);');
+ insert into queries (query_name, query) values ('deleteNouns', 'delete from pronoun where pronounid in (select pronounid from pronouns where username = ?);');
  insert into queries (query_name, query) values ('insertPage', 'insert into pages (pagename, title) values (?,?);');
  insert into queries (query_name, query) values ('updateMetadata', 'update pages set title = ?, rating = ?, created_by = ?, created_on = where pagename = ?;');
  insert into queries (query_name, query) values ('create_nick_group', 'insert into nick_groups values(default()) returning id;');
@@ -45,7 +45,7 @@ insert into queries (query_name,query) values ('insert_captain','insert into cap
  insert into queries (query_name, query) values ('insertHug', 'insert into hugs (username, hug) values (?,?);');
  insert into queries (query_name, query) values ('updateHug', 'update hugs set hug = ? where username = ?;');
  insert into queries (query_name, query) values ('clearTells', 'update tells set delivered = true where username = ?;');
- insert into queries (query_name, query) values ('searchTells', 'select * from tells where username = ?;');
+ insert into queries (query_name, query) values ('searchTells', 'select * from tells where username = ? and delivered = false;');
  insert into queries (query_name, query) values ('updateUser', 'update users set last_seen = ?, last_message = ? where username = ? and channel = ?;');
  insert into queries (query_name, query) values ('insertUser', 'insert into users (username, first_seen, last_seen, last_message, first_message, channel) values (?,?,?,?,?);');
  insert into queries (query_name, query) values ('seen', 'select * from users where username = ? and channel = ?');
@@ -53,8 +53,9 @@ insert into queries (query_name,query) values ('insert_captain','insert into cap
  insert into queries (query_name, query) values ('commandEnabled', 'select enabled from channeltoggles where channel = ? and command = ?;');
  insert into queries (query_name, query) values ('insertToggle', 'insert into channeltoggles (channel, command, enabled) values (?,?,?);');
  insert into queries (query_name, query) values ('updateToggle', 'update channeltoggles set enabled = ? where channel = ? and command = ?;');
- insert into queries (query_name, query) values ('findSkips', 'select * from pages where username = ? and pageid in (select pageid from pagetags where tagid = (select tagid from tags where tag = ''scp'')) ');
- insert into queries (query_name, query) values ('findTales', 'select * from pages where username = ? and pageid in (select pageid from pagetags where tagid = (select tagid from tags where tag = ''tale'')) ');
+ insert into queries (query_name, query) values ('findSkips', 'select * from pages where LOWER(created_by) = ? and pageid in (select pageid from pagetags where tagid = (select tagid from tags where tag = ''scp'')) ');
+ insert into queries (query_name, query) values ('findTales', 'select * from pages where LOWER(created_by) = ? and pageid in (select pageid from pagetags where tagid = (select tagid from tags where tag = ''tale'')) ');
  insert into queries (query_name, query) values ('insert_grouped_nick', 'insert into nicks (id, nick) values (?,?);');
  insert into queries (query_name, query) values ('find_nick_group', 'select id from nicks where nick = ?;');
  insert into queries (query_name, query) values ('getNicks', 'select nick from nicks where id = ?;');
+ insert into queries (query_name, queries) values ('findskips', 'select * from pages where lower(scptitle) like any (array[?]) or lower(pagename) like any (array[?]);');

@@ -82,7 +82,7 @@ public class StafflistExtractor {
     }
 
 
-    public static void main(String[] args) throws Exception {
+    public static void updateStaff() throws Exception {
         URL url;
         InputStream is = null;
         BufferedReader br;

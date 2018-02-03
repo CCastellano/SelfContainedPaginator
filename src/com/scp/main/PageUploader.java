@@ -24,6 +24,8 @@ import com.scp.connection.Configs;
 import com.scp.connection.Connector;
 import com.scp.connection.Queries;
 
+import static com.scp.main.StafflistExtractor.updateStaff;
+
 public class PageUploader {
 	private static final Logger logger = Logger.getLogger(PageUploader.class);
 	private static XmlRpcClientConfigImpl config;
@@ -101,6 +103,8 @@ public class PageUploader {
 			CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deleteOldtags"));
 			stmt.executeUpdate();
 
+			StafflistExtractor.updateStaff();
+
 		} catch (Exception e) {
 			logger.error("Error checking if update required.", e);
 		}
@@ -167,6 +171,10 @@ public class PageUploader {
 							Queries.getQuery("updateTitle"), update[2],
 							update[0]);
 					stmt.executeUpdate();
+					stmt.close();
+					stmt = Connector.getStatement(Queries.getQuery("scpTitle"),update[1],update[0]);
+					stmt.executeUpdate();
+					stmt.close();
 				}
 
 			} catch (Exception e) {
