@@ -41,8 +41,8 @@ public class StafflistExtractor {
 
 
     static {
-        categories.add("Moderators");
-        categories.add("Administrators");
+        categories.add("Moderator");
+        categories.add("Administrator");
         categories.add("Operational Staff");
         categories.add("Junior Staff");
     }
