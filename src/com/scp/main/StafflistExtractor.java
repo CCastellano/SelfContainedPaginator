@@ -160,7 +160,7 @@ public class StafflistExtractor {
                 }
             }catch(Exception e){
                 System.out.println("Exception!");
-                e.printStackTrace();
+                System.out.println(e.getStackTrace().toString());
             }
         }
 
