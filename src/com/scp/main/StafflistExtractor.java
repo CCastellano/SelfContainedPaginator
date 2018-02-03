@@ -22,7 +22,7 @@ public class StafflistExtractor {
     private final static Logger logger = Logger.getLogger(StafflistExtractor.class);
 
 
-    final static String userregex = ".*user:info\\/(.*)\\\"\\s.*userid=(.*)&amp;amp;size=";
+    final static String userregex = ".*user:info\\/(.*)\"\\sonclick=.*userid=(.*)&amp;amp;size=";
     final static String sectionRegex = "<h1 id=\"toc[0-9]\"><span>(.*)</span.*";
     final static String topregex = "<h1 id=\"toc[0-9]\"><span>(.*)</span></h1>";
     final static String tdregex = "<td>(.*)<\\td>";
@@ -109,30 +109,35 @@ public class StafflistExtractor {
 
             }
         }
+        staffUpload();
 
         //System.out.println("Staff size: " + currentStaff.size() + " teams: " + staffTeams.size());
+
+    }
+
+    private static void staffUpload(){
         for(Staff staff: staffList){
             try {
 
-               // System.out.println(staff.toString());
+                // System.out.println(staff.toString());
                 if (currentStaff.contains(staff)) {
                     staff.setStaff_id(currentStaff.get(currentStaff.indexOf(staff)).getStaff_id());
                     updateStaff(staff);
-          //          System.out.println("Updated staff for: " + staff.getUsername());
+                    //          System.out.println("Updated staff for: " + staff.getUsername());
                 } else {
                     staff.setStaff_id(addStaff(staff));
-            //        System.out.println("Inserted staff for: " + staff.getUsername());
+                    //        System.out.println("Inserted staff for: " + staff.getUsername());
                 }
                 if(staff.getTeams() != null) {
-              //      System.out.println(staff.getTeams());
+                    //      System.out.println(staff.getTeams());
                     for (String team : staff.getTeams()) {
                         team = team.trim();
                         if (!staffTeams.containsKey(team)) {
                             addTeam(team);
                             staffTeams.put(team, new ArrayList<Integer>());
-                //            System.out.println("Added team: " + team);
+                            //            System.out.println("Added team: " + team);
                             addStaffToTeam(team, staff.getStaff_id());
-                  //          System.out.println("Added user to team: " + team + ": " + staff.getUsername());
+                            //          System.out.println("Added user to team: " + team + ": " + staff.getUsername());
 
                         } else {
                             if (staff.getStaff_id() != null && !staffTeams.get(team).contains(staff.getStaff_id())) {
