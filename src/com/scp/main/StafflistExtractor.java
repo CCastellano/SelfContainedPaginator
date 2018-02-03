@@ -119,14 +119,15 @@ public class StafflistExtractor {
         for(Staff staff: staffList){
             try {
 
-                // System.out.println(staff.toString());
+                 System.out.println(staff.toString());
                 if (currentStaff.contains(staff)) {
                     staff.setStaff_id(currentStaff.get(currentStaff.indexOf(staff)).getStaff_id());
                     updateStaff(staff);
-                    //          System.out.println("Updated staff for: " + staff.getUsername());
+                              System.out.println("Updated staff for: " + staff.getUsername());
                 } else {
                     staff.setStaff_id(addStaff(staff));
-                    //        System.out.println("Inserted staff for: " + staff.getUsername());
+                    currentStaff.add(staff);
+                            System.out.println("Inserted staff for: " + staff.getUsername());
                 }
                 if(staff.getTeams() != null) {
                     //      System.out.println(staff.getTeams());
