@@ -22,7 +22,7 @@ public class StafflistExtractor {
     private final static Logger logger = Logger.getLogger(StafflistExtractor.class);
 
 
-    final static String userregex = ".*user:info\\/(.*)\"\\sonclick=.*userid=(.*)&amp;amp;size=";
+    final static String userregex = ".*user:info\\/(.*)\"\\sonclick=.*userid=(.*)&amp;amp;size=.*return false;\">(.*)</a>";
     final static String sectionRegex = "<h1 id=\"toc[0-9]\"><span>(.*)</span.*";
     final static String topregex = "<h1 id=\"toc[0-9]\"><span>(.*)</span></h1>";
     final static String tdregex = "<td>(.*)<\\td>";
@@ -189,7 +189,7 @@ public class StafflistExtractor {
     private static Integer addStaff(Staff staff){
         try{
             CloseableStatement stmt = Connector.getStatement(Queries.getQuery("insert_staff"),
-                    staff.getUsername(),staff.getTimeZone(), staff.getContactMethods(),staff.getActivityLevel(), staff.getLevel(),staff.getWikidotId());
+                    staff.getUsername(),staff.getTimeZone(), staff.getContactMethods(),staff.getActivityLevel(), staff.getLevel(), staff.getDisplayName(), staff.getWikidotId());
             ResultSet rs = stmt.execute();
             Integer value =  rs != null && rs.next() ? rs.getInt("staff_id") : -1;
             rs.close();
@@ -206,7 +206,7 @@ public class StafflistExtractor {
                 System.out.println("Issue");
             }
             CloseableStatement stmt = Connector.getStatement(Queries.getQuery("update_staff"),
-                    staff.getUsername(),staff.getTimeZone(), staff.getContactMethods(),staff.getActivityLevel(), staff.getLevel(),staff.getWikidotId(), staff.getStaff_id());
+                    staff.getUsername(),staff.getTimeZone(), staff.getContactMethods(),staff.getActivityLevel(), staff.getLevel(),staff.getWikidotId(), staff.getDisplayName(), staff.getStaff_id());
             stmt.executeUpdate();
             stmt.close();
         }catch(Exception e){
@@ -273,6 +273,7 @@ public class StafflistExtractor {
                     //System.out.println("User " + matcher.group(1));
                     staffMember.setUsername(matcher.group(1));
                    staffMember.setWikidotId(Integer.valueOf(matcher.group(2)));
+                   staffMember.setDisplayName(matcher.group(3));
                 }
             }
             line = br.readLine();

@@ -10,6 +10,16 @@ public class Staff {
     private String activityLevel = "";
     private String contactMethods = "";
 
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    private String displayName = "";
+
     public int getWikidotId() {
         return wikidotId;
     }
