@@ -10,6 +10,16 @@ public class Staff {
     private String activityLevel = "";
     private String contactMethods = "";
 
+    public int getWikidotId() {
+        return wikidotId;
+    }
+
+    public void setWikidotId(int wikidotId) {
+        this.wikidotId = wikidotId;
+    }
+
+    private int wikidotId;
+
     public Integer getStaff_id() {
         return staff_id;
     }

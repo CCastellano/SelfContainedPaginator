@@ -24,7 +24,7 @@ import com.scp.connection.Configs;
 import com.scp.connection.Connector;
 import com.scp.connection.Queries;
 
-import static com.scp.main.StafflistExtractor.updateStaff;
+
 
 public class PageUploader {
 	private static final Logger logger = Logger.getLogger(PageUploader.class);
