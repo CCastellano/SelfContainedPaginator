@@ -87,9 +87,9 @@ public class StafflistExtractor {
         InputStream is = null;
         BufferedReader br;
         String line;
-        //getStaff();
-        //getTeams();
-        //clearCaptains();
+        getStaff();
+        getTeams();
+        clearCaptains();
 
 
         url = new URL("http://05command.wikidot.com/staff-list");
@@ -109,7 +109,7 @@ public class StafflistExtractor {
 
             }
         }
-        //staffUpload();
+        staffUpload();
 
         //System.out.println("Staff size: " + currentStaff.size() + " teams: " + staffTeams.size());
 
