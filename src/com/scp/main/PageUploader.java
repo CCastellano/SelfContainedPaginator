@@ -210,18 +210,20 @@ public class PageUploader {
 	private static void gatherMetadata() {
 		try {
 			logger.info("Gathering metadata.");
+			int j = 0;
 			Page[] pageSet = new Page[10];
 			RateLimiter limiter = RateLimiter.create(200.0 / 60.0);
 			for (Page str : pages) {
 				if(pageTitles.contains(str.getPageLink())){
-					for(int i = 0; i < 10; i++){
-						pageSet[i] = str;
+					if (j < 10) {
+						pageSet[j] = str;
+						j++;
+					} else {
+						limiter.acquire();
+						getPageInfo(pageSet);
+						pageSet = new Page[10];
+						j = 0;
 					}
-
-					limiter.acquire();
-					getPageInfo(pageSet);
-					pageSet = new Page[10];
-
 				}
 			}
 			logger.info("Finished gathering metadata");
@@ -251,13 +253,15 @@ public class PageUploader {
 				pageList.add( (String) result[i]);
 			}
 			for (String str : pageList) {
-				try {
-					CloseableStatement stmt = Connector.getStatement(
-							Queries.getQuery("insertPage"), str, str);
-					stmt.executeUpdate();
-				} catch (Exception e) {
-					if (!e.getMessage().contains("unique")) {
-						logger.error("Couldn't insert page name", e);
+				if(!pageTitles.contains(str)) {
+					try {
+						CloseableStatement stmt = Connector.getStatement(
+								Queries.getQuery("insertPage"), str, str);
+						stmt.executeUpdate();
+					} catch (Exception e) {
+						if (!e.getMessage().contains("unique")) {
+							logger.error("Couldn't insert page name", e);
+						}
 					}
 				}
 			}
