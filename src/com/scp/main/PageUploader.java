@@ -190,6 +190,8 @@ public class PageUploader {
 	private static Map<String, ArrayList<String>> pageTags = new HashMap<>();
 
 	private static void getTags(){
+		logger.info("Gathering current tags.");
+		int tags = 0;
 		try {
 			CloseableStatement stmt = Connector.getStatement(
 					Queries.getQuery("getAllTags"));
@@ -199,16 +201,19 @@ public class PageUploader {
 				String tag = rs.getString("tag");
 				pageTags.computeIfAbsent(page,k -> pageTags.put(k, new ArrayList<String>()));
 				pageTags.get(page).add(tag);
+				tags ++;
 			}
 			rs.close();
 			stmt.close();
 		}catch(Exception e){
 			logger.error("Exception trying to get all pagetags.",e);
 		}
+		logger.info("Gathered " + tags + " total tags for: " + pageTags.size());
 	}
 
 	private static void gatherMetadata() {
 		try {
+			getTags();
 			logger.info("Gathering metadata.");
 			int j = 0;
 			Page[] pageSet = new Page[10];
