@@ -70,13 +70,17 @@ public class StafflistExtractor {
             CloseableStatement stmt = Connector.getStatement(Queries.getQuery("get_teams"));
             ResultSet rs = stmt.executeQuery();
             while (rs != null && rs.next()) {
-                staffTeams.computeIfAbsent(rs.getString("team_name"), k -> staffTeams.put(k, new ArrayList<Integer>()));
+                String team_name = rs.getString("team_name");
+                if(!staffTeams.containsKey(team_name)){
+                    staffTeams.put(team_name, new ArrayList<Integer>());
+                }
                 staffTeams.get(rs.getString("team_name")).add(rs.getInt("staff_id"));
             }
             logger.info("staffTeams: " + staffTeams.keySet());
             stmt.close();
             rs.close();
         } catch (Exception e) {
+            logger.error("Exception loading teams,",e);
         }
 
     }
