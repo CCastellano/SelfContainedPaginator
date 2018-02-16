@@ -333,16 +333,27 @@ public class PageUploader {
 
 					for (Object tag : tags) {
 						tagsOnWebVersion.add(tag.toString());
-						if (!pageTags.get(targetName).contains(tag.toString())) {
-							tagsToInsertForPage.add(tag.toString());
+
+					}
+					if(pageTags.get(targetName) != null){
+
+						for(String tag: tagsOnWebVersion) {
+							if (!pageTags.get(targetName).contains(tag)) {
+								tagsToInsertForPage.add(tag);
+							}
 						}
+
+						for (String tag : pageTags.get(targetName)) {
+							if(!tagsOnWebVersion.contains(tag)){
+								tagsToDeleteForPage.add(tag);
+							}
+						}
+
+					}else{
+						tagsToInsertForPage.addAll(tagsOnWebVersion);
+						logger.info("No page tags for page: " + targetName);
 					}
 
-					for (String tag : pageTags.get(targetName)) {
-						if(!tagsOnWebVersion.contains(tag)){
-							tagsToDeleteForPage.add(tag);
-						}
-					}
 
 					for (String tag : tagsToInsertForPage) {
 						try {
