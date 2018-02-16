@@ -41,6 +41,7 @@ public class Queries {
 				queryCache.put(rs.getString("query_name"),
 						rs.getString("query"));
 			}
+			logger.info(queryCache.toString());
 			valid = true;
 		} catch (Exception e) {
 			logger.error("Exception trying to load queries in to cache", e);
