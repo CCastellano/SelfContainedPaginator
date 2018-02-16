@@ -43,6 +43,7 @@ public class Queries {
 			}
 			logger.info(queryCache.toString());
 			valid = true;
+			stmt.close();
 		} catch (Exception e) {
 			logger.error("Exception trying to load queries in to cache", e);
 		}

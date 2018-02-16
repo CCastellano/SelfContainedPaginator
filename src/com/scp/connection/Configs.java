@@ -79,8 +79,10 @@ public class Configs {
 			ResultSet rs = stmt.executeQuery();
 			if (rs != null && rs.next()) {
 				if (rs.getInt("counted") > 1) {
+					stmt.close();
 					return "That property has multiple values.  Please contact Dr. Magnus to have it modified.";
 				} else if (rs.getInt("counted") < 1) {
+					stmt.close();
 					return "That property currently is not set.  This operation doesn't support insertion.";
 				} else {
 					stmt.close();

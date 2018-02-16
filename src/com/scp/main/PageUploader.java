@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.util.concurrent.RateLimiter;
 import org.apache.log4j.Logger;
 import org.apache.xmlrpc.XmlRpcException;
 import org.apache.xmlrpc.client.XmlRpcClient;
@@ -102,7 +103,6 @@ public class PageUploader {
 			
 			CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deleteOldtags"));
 			stmt.executeUpdate();
-
 			StafflistExtractor.updateStaff();
 
 		} catch (Exception e) {
@@ -171,10 +171,9 @@ public class PageUploader {
 							Queries.getQuery("updateTitle"), update[2],
 							update[0]);
 					stmt.executeUpdate();
-					stmt.close();
+
 					stmt = Connector.getStatement(Queries.getQuery("scpTitle"),update[1],update[0]);
 					stmt.executeUpdate();
-					stmt.close();
 				}
 
 			} catch (Exception e) {
@@ -188,36 +187,41 @@ public class PageUploader {
 		logger.info("Finished gathering series pages");
 	}
 
+	private static Map<String, ArrayList<String>> pageTags = new HashMap<>();
+
+	private static void getTags(){
+		try {
+			CloseableStatement stmt = Connector.getStatement(
+					Queries.getQuery("getAllTags"));
+			ResultSet rs = stmt.execute();
+			while(rs != null && rs.next()){
+				String page = rs.getString("pagename");
+				String tag = rs.getString("tag");
+				pageTags.computeIfAbsent(page,k -> pageTags.put(k, new ArrayList<String>()));
+				pageTags.get(page).add(tag);
+			}
+			rs.close();
+			stmt.close();
+		}catch(Exception e){
+			logger.error("Exception trying to get all pagetags.",e);
+		}
+	}
+
 	private static void gatherMetadata() {
 		try {
 			logger.info("Gathering metadata.");
-			int j = 0;
-			long minute = System.currentTimeMillis();
-			int maxRequests = 200;
-			int currentRequests = 0;
 			Page[] pageSet = new Page[10];
+			RateLimiter limiter = RateLimiter.create(200.0 / 60.0);
 			for (Page str : pages) {
 				if(pageTitles.contains(str.getPageLink())){
-					if (j < 10) {
-						pageSet[j] = str;
-						j++;
-					} else {
-						while(currentRequests >= maxRequests){
-							Thread.sleep(1000);
-							if((System.currentTimeMillis() - minute) > (60 * 1000)){
-								minute = System.currentTimeMillis();
-								currentRequests = 0;
-							}
-						}
-						if((System.currentTimeMillis() - minute) > (60 * 1000)){
-							minute = System.currentTimeMillis();
-							currentRequests = 0;
-						}
-						currentRequests += 1;
-						getPageInfo(pageSet);
-						pageSet = new Page[10];
-						j = 0;
+					for(int i = 0; i < 10; i++){
+						pageSet[i] = str;
 					}
+
+					limiter.acquire();
+					getPageInfo(pageSet);
+					pageSet = new Page[10];
+
 				}
 			}
 			logger.info("Finished gathering metadata");
@@ -312,41 +316,40 @@ public class PageUploader {
 					Object[] tags = (Object[]) result.get(targetName).get(
 							"tags");
 
-					ArrayList<String> insertTags = new ArrayList<String>();
-					ArrayList<String> deleteTags = new ArrayList<String>();
-					ArrayList<String> dbTags = Tags.getTags(targetName);
-					ArrayList<String> currentTags = new ArrayList<String>();
+					ArrayList<String> tagsToInsertForPage = new ArrayList<String>();
+					ArrayList<String> tagsToDeleteForPage = new ArrayList<String>();
+					ArrayList<String> tagsOnWebVersion = new ArrayList<String>();
 
-					for (Object obj : tags) {
-						currentTags.add(obj.toString());
-						if (!dbTags.contains(obj.toString()) && obj != null) {
-							insertTags.add(obj.toString());
+					for (Object tag : tags) {
+						tagsOnWebVersion.add(tag.toString());
+						if (!pageTags.get(targetName).contains(tag.toString())) {
+							tagsToInsertForPage.add(tag.toString());
 						}
 					}
 
-					for (String tag : dbTags) {
-						if(!currentTags.contains(tag)){
-							deleteTags.add(tag);
+					for (String tag : pageTags.get(targetName)) {
+						if(!tagsOnWebVersion.contains(tag)){
+							tagsToDeleteForPage.add(tag);
 						}
 					}
 
-					for (String obj : insertTags) {
+					for (String tag : tagsToInsertForPage) {
 						try {
-							logger.info("CURRENT TAG: " + obj);
+							logger.info("CURRENT TAG: " + tag);
 							CloseableStatement stmt = Connector.getStatement(
 									Queries.getQuery("insertPageTag"),
-									targetName, obj.toString());
+									targetName, tag);
 							stmt.executeUpdate();
 						} catch (PSQLException e) {
 							if (!e.getMessage().contains("unique")) {
 								if (e.getMessage().contains("not-null")) {
 									CloseableStatement stmt = Connector.getStatement(
-											Queries.getQuery("insertTag"), obj.toString());
+											Queries.getQuery("insertTag"), tag);
 									stmt.executeUpdate();
 
 									stmt = Connector.getStatement(
 											Queries.getQuery("insertPageTag"),
-											targetName, obj.toString());
+											targetName, tag);
 									stmt.executeUpdate();
 
 
@@ -358,10 +361,10 @@ public class PageUploader {
 						}
 					}
 
-					for (Object obj : deleteTags) {
+					for (String tag : tagsToDeleteForPage) {
 						CloseableStatement stmt = Connector.getStatement(
 								Queries.getQuery("deletePageTag"), targetName,
-								obj.toString());
+								tag);
 						stmt.executeUpdate();
 						
 					}
