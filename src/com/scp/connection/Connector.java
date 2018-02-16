@@ -28,7 +28,7 @@ public class Connector {
 			return new CloseableStatement(conn.prepareStatement(queryString),
 					conn);
 		} catch (Exception e) {
-			// TODO exception text
+			logger.error("There was an exception getting the statement: ",e);
 		}
 		return new CloseableStatement();
 	}
