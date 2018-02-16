@@ -41,7 +41,6 @@ public class Queries {
 				queryCache.put(rs.getString("query_name"),
 						rs.getString("query"));
 			}
-			logger.info(queryCache.toString());
 			valid = true;
 			stmt.close();
 		} catch (Exception e) {

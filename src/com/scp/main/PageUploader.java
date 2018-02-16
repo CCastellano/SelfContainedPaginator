@@ -105,7 +105,7 @@ public class PageUploader {
 			CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deleteOldtags"));
 			stmt.executeUpdate();
 			StafflistExtractor.updateStaff();
-
+			logger.info("Completed site upload.");
 		} catch (Exception e) {
 			logger.error("Error checking if update required.", e);
 		}

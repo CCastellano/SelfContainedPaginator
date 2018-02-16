@@ -115,34 +115,29 @@ public class StafflistExtractor {
         }
         staffUpload();
 
-        //System.out.println("Staff size: " + currentStaff.size() + " teams: " + staffTeams.size());
-
     }
 
     private static void staffUpload(){
         for(Staff staff: staffList){
             try {
 
-                 System.out.println(staff.toString());
+                 logger.info(staff.toString());
                 if (currentStaff.contains(staff)) {
                     staff.setStaff_id(currentStaff.get(currentStaff.indexOf(staff)).getStaff_id());
                     updateStaff(staff);
-                              System.out.println("Updated staff for: " + staff.getUsername());
+                              logger.info("Updated staff for: " + staff.getUsername());
                 } else {
                     staff.setStaff_id(addStaff(staff));
                     currentStaff.add(staff);
-                            System.out.println("Inserted staff for: " + staff.getUsername());
+                            logger.info("Inserted staff for: " + staff.getUsername());
                 }
                 if(staff.getTeams() != null) {
-                    //      System.out.println(staff.getTeams());
                     for (String team : staff.getTeams()) {
                         team = team.trim();
                         if (!staffTeams.containsKey(team)) {
                             addTeam(team);
                             staffTeams.put(team, new ArrayList<Integer>());
-                            //            System.out.println("Added team: " + team);
                             addStaffToTeam(team, staff.getStaff_id());
-                            //          System.out.println("Added user to team: " + team + ": " + staff.getUsername());
 
                         } else {
                             if (staff.getStaff_id() != null && !staffTeams.get(team).contains(staff.getStaff_id())) {
@@ -151,20 +146,19 @@ public class StafflistExtractor {
                         }
                     }
                 }
-                System.out.println("checking captaincies for user: " + staff.getUsername());
+                logger.info("checking captaincies for user: " + staff.getUsername());
                 if(staff.getCaptaincies() != null) {
-                    System.out.println("Captaincy for user: " + staff.getUsername());
+                    logger.info("Captaincy for user: " + staff.getUsername());
                     for (String captaincies : staff.getCaptaincies()) {
                         captaincies = captaincies.trim();
-                        System.out.println("Captaincy: " + captaincies);
+                        logger.info("Captaincy: " + captaincies);
 
                         insertCaptain(captaincies, staff.getStaff_id());
-                        System.out.println("Inserted captaincy for user.");
+                        logger.info("Inserted captaincy for user.");
                     }
                 }
             }catch(Exception e){
-                System.out.println("Exception!");
-                System.out.println(e.getStackTrace().toString());
+                logger.info("Exception with staff upload.",e);
             }
         }
 
@@ -208,7 +202,7 @@ public class StafflistExtractor {
     private static void updateStaff(Staff staff){
         try{
             if(staff.getStaff_id() == null){
-                System.out.println("Issue");
+                logger.info("Issue");
             }
             CloseableStatement stmt = Connector.getStatement(Queries.getQuery("update_staff"),
                     staff.getUsername(),staff.getTimeZone(), staff.getContactMethods(),staff.getActivityLevel(), staff.getLevel(),staff.getWikidotId(), staff.getDisplayName(), staff.getStaff_id());
@@ -251,7 +245,7 @@ public class StafflistExtractor {
             stmt.executeUpdate();
             stmt.close();
         }catch(Exception e){
-            System.out.println("Exception!");
+            logger.info("Exception!");
         e.printStackTrace();}
     }
 
@@ -275,7 +269,7 @@ public class StafflistExtractor {
             if (line.contains("user:info")) {
                 final Matcher matcher = pattern.matcher(line);
                 if (matcher.find()) {
-                    //System.out.println("User " + matcher.group(1));
+                    //logger.info("User " + matcher.group(1));
                     staffMember.setUsername(matcher.group(1));
                    staffMember.setWikidotId(Integer.valueOf(matcher.group(2)));
                    staffMember.setDisplayName(matcher.group(3));
@@ -285,10 +279,10 @@ public class StafflistExtractor {
             if(line.contains("userid=")){
 
             }
-            // System.out.println("teams " + line);
+            // logger.info("teams " + line);
             Matcher matcher = dataPattern.matcher(line);
             matcher.matches();
-            //System.out.println(matcher.matches());
+            //logger.info(matcher.matches());
             if (!matcher.group(1).isEmpty()) {
                 if (!rejected.contains(matcher.group(1).toLowerCase())) {
                     staffMember.setTeams(Arrays.asList(matcher.group(1).split(",")));
@@ -296,7 +290,7 @@ public class StafflistExtractor {
             }
             if (!type.equals("Junior Staff")) {
                 line = br.readLine();
-                //  System.out.println("TimeZone " + line);
+                //  logger.info("TimeZone " + line);
                 matcher = dataPattern.matcher(line);
                 matcher.matches();
                 if (!matcher.group(1).isEmpty()) {
@@ -308,7 +302,7 @@ public class StafflistExtractor {
                     }
                 }
                 line = br.readLine();
-                //System.out.println("Activity " + line);
+                //logger.info("Activity " + line);
                 matcher = dataPattern.matcher(line);
                 matcher.matches();
                 if (!matcher.group(1).isEmpty()) {
@@ -327,7 +321,7 @@ public class StafflistExtractor {
                         staffMember.setContactMethods(matcher.group(1));
                     }
                 }
-                //System.out.println("Contacts " + line);
+                //logger.info("Contacts " + line);
                 line = br.readLine();
                 matcher = dataPattern.matcher(line);
                 matcher.matches();
@@ -336,7 +330,7 @@ public class StafflistExtractor {
                         staffMember.setCaptaincies(Arrays.asList(matcher.group(1).split(",")));
                     }
                 }
-                //System.out.println("Captaincies " + line);
+                //logger.info("Captaincies " + line);
             }
             staffList.add(staffMember);
             br.readLine();
