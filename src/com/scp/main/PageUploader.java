@@ -97,6 +97,7 @@ public class PageUploader {
 	public static void main(String[] args) {
 		try {
 			loadPages();
+			getTags();
 			listPage();
 			gatherMetadata();
 			uploadSeries();
@@ -199,9 +200,11 @@ public class PageUploader {
 			while(rs != null && rs.next()){
 				String page = rs.getString("pagename");
 				String tag = rs.getString("tag");
-				pageTags.computeIfAbsent(page,k -> pageTags.put(k, new ArrayList<String>()));
+				if(!pageTags.containsKey(page)){
+					pageTags.put(page, new ArrayList<String>());
+				}
 				pageTags.get(page).add(tag);
-				tags ++;
+				tags++;
 			}
 			rs.close();
 			stmt.close();
@@ -213,7 +216,6 @@ public class PageUploader {
 
 	private static void gatherMetadata() {
 		try {
-			getTags();
 			logger.info("Gathering metadata.");
 			int j = 0;
 			Page[] pageSet = new Page[10];
