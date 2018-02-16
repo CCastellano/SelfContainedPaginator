@@ -20,6 +20,7 @@ public class Connector {
 		} catch (SQLException e) {
 			logger.error("Exception connecting to psql",e);
 		}
+		return null;
 	}
 
 	public static CloseableStatement getStatement(String queryString) {
