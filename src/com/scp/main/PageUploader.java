@@ -387,7 +387,7 @@ public class PageUploader {
 						stmt.executeUpdate();
 						
 					}
-					Connector.getStatement(Queries.getQuery("deleteOldtags")).executeUpdate();
+					//Connector.getStatement(Queries.getQuery("deleteOldtags")).executeUpdate();
 					
 					
 
