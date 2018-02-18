@@ -170,10 +170,7 @@ public class PageUploader {
 				for (String[] update : updateList) {
 					CloseableStatement stmt = Connector.getStatement(
 							Queries.getQuery("updateTitle"), update[2],
-							update[0]);
-					stmt.executeUpdate();
-
-					stmt = Connector.getStatement(Queries.getQuery("scpTitle"),update[1],update[0]);
+							update[1],update[0]);
 					stmt.executeUpdate();
 				}
 
