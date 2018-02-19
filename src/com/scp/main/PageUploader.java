@@ -31,8 +31,7 @@ public class PageUploader {
 	private static final Logger logger = Logger.getLogger(PageUploader.class);
 	private static XmlRpcClientConfigImpl config;
 	private static XmlRpcClient client;
-	private static ArrayList<Page> pages;
-	private static HashSet<String> pageTitles;
+	private static HashMap<String,Page> pages;
 
 	static {
 		config = new XmlRpcClientConfigImpl();
@@ -60,8 +59,8 @@ public class PageUploader {
 	}
 
 	private static void loadPages() {
-		pages = new ArrayList<Page>();
-		pageTitles = new HashSet<String>();
+		pages = new HashMap<String,Page>();
+		//pageTitles = new HashSet<String>();
 		try {
 			CloseableStatement stmt = Connector.getStatement(Queries
 					.getQuery("getStoredPages"));
@@ -70,18 +69,14 @@ public class PageUploader {
 			while (rs != null && rs.next()) {
 
 				try {
-					pageTitles.add(rs.getString("pagename"));
-					pages.add(new Page(rs.getString("pagename") == null ? ""
-							: rs.getString("pagename"),
-							rs.getString("title") == null ? "" : rs
-									.getString("pagename"),
+					pages.put(rs.getString("pagename"),
+							new Page(rs.getString("pagename") == null ? "" : rs.getString("pagename"),
+							rs.getString("title") == null ? "" : rs.getString("pagename"),
 							rs.getInt("rating"),
-							rs.getString("created_by") == null ? "" : rs
-									.getString("created_by"), rs
-									.getTimestamp("created_on"), rs
-									.getBoolean("scpPage"), rs
-									.getString("scpTitle") == null ? "" : rs.getString("scpTitle"),
-									Tags.getTags(rs.getString("pagename"))));
+							rs.getString("created_by") == null ? "" : rs.getString("created_by"),
+							rs.getTimestamp("created_on"),
+							rs.getBoolean("scpPage"),
+							rs.getString("scpTitle") == null ? "" : rs.getString("scpTitle")));
 				} catch (PSQLException e) {
 					logger.error("Couldn't create page, keep going", e);
 				}
@@ -141,22 +136,15 @@ public class PageUploader {
 				ArrayList<String[]> insertPages = new ArrayList<String[]>();
 				ArrayList<String[]> updateList = new ArrayList<String[]>();
 
+
+
 				for (String[] pageParts : pagelist) {
-					boolean found = false;
-					for (Page pageOb : pages) {
-						if (pageOb.getPageLink().equalsIgnoreCase(pageParts[0])) {
-							found = true;
-							if (!pageOb.getScpTitle().equalsIgnoreCase(
-									pageParts[1])) {
-								updateList.add(pageParts);
-								pageOb.setScpTitle(pageParts[0]);
-								pageOb.setScpPage(true);
-							}
+					if(pages.containsKey(pageParts[0])){
+						Page p = pages.get(pageParts[0]);
+						if(!p.getScpTitle().equalsIgnoreCase(pageParts[2])){
+							updateList.add(pageParts);
 						}
-					}
-					if (!found) {
-						// This should never actually happen. The site scrape
-						// should handle this.
+					}else{
 						insertPages.add(pageParts);
 					}
 				}
@@ -169,8 +157,8 @@ public class PageUploader {
 				}
 				for (String[] update : updateList) {
 					CloseableStatement stmt = Connector.getStatement(
-							Queries.getQuery("updateTitle"), update[2],
-							update[1],update[0]);
+							Queries.getQuery("updateTitle"), update[1],
+							update[2],update[0]);
 					stmt.executeUpdate();
 				}
 
@@ -217,10 +205,10 @@ public class PageUploader {
 			int j = 0;
 			Page[] pageSet = new Page[10];
 			RateLimiter limiter = RateLimiter.create(200.0 / 60.0);
-			for (Page str : pages) {
-				if(pageTitles.contains(str.getPageLink())){
+			for (String str : pages.keySet()) {
+				Page page = pages.get(str);
 					if (j < 10) {
-						pageSet[j] = str;
+						pageSet[j] = page;
 						j++;
 					} else {
 						limiter.acquire();
@@ -228,7 +216,6 @@ public class PageUploader {
 						pageSet = new Page[10];
 						j = 0;
 					}
-				}
 			}
 			logger.info("Finished gathering metadata");
 		} catch (Exception e) {
@@ -257,11 +244,12 @@ public class PageUploader {
 				pageList.add( (String) result[i]);
 			}
 			for (String str : pageList) {
-				if(!pageTitles.contains(str)) {
+				if(!pages.containsKey(str)) {
 					try {
 						CloseableStatement stmt = Connector.getStatement(
 								Queries.getQuery("insertPage"), str, str);
 						stmt.executeUpdate();
+						pages.put(str, new Page(str));
 					} catch (Exception e) {
 						if (!e.getMessage().contains("unique")) {
 							logger.error("Couldn't insert page name", e);
@@ -270,16 +258,15 @@ public class PageUploader {
 				}
 			}
 			ArrayList<String> removals = new ArrayList<String>();
-			for(String str: pageTitles){
+			for(String str: pages.keySet()){
 				if(!pageList.contains(str)){
 					removals.add(str);
-				
 					CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deletePage"),str);
 					stmt.executeUpdate();
 				}
 			}
 			for(String str: removals){
-				pageTitles.remove(str);
+				pages.remove(str);
 			}
 			logger.info("Ending site-wide page gather");
 		} catch (Exception e) {
@@ -387,9 +374,6 @@ public class PageUploader {
 						stmt.executeUpdate();
 						
 					}
-					//Connector.getStatement(Queries.getQuery("deleteOldtags")).executeUpdate();
-					
-					
 
 					CloseableStatement stmt = Connector
 							.getStatement(

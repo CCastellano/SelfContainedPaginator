@@ -38,6 +38,10 @@ public class Page {
 		this.scpTitle = scpTitle;
 		this.tags = tags;
 	}
+
+	public Page (String pageLink){
+		this.pageLink = pageLink;
+	}
 	
 	public Page (String pageLink, String title,Boolean scpPage, String scpTitle){
 		this.pageLink = pageLink;
@@ -127,7 +131,11 @@ public class Page {
 	public ArrayList<String> getTags(){
 		return tags;
 	}
-	
+
+	@Override
+	public boolean equals(Object otherPage){
+			return otherPage instanceof Page && ((Page)otherPage).getPageLink().equals(this.getPageLink());
+	}
 	
 	
 }
