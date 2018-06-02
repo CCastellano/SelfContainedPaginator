@@ -12,8 +12,13 @@
 --$body$ language plpgsql;
 
 
+create or replace function findSkips(p_author text)
+returns setof pages  as $body$
+select * from pages where lower(created_by) = p_author and pageid in (select pageid from pagetags where tagid = (select tagid from tags where tag = 'scp'));
+$body$ language sql;
+
 create or replace function add2(p_arg1 integer, p_arg2 integer)
-return integer as $body$
+returns integer as $body$
 begin
 return p_arg1 + p_arg2;
 
