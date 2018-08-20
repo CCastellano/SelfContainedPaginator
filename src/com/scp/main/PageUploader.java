@@ -111,7 +111,7 @@ public class PageUploader {
 		Pattern r = Pattern.compile(regex);
 		logger.info("Beggining gather of series pages: 1, 2, 3, 4 and jokes");
 		String[] series = new String[] { "scp-series	", "scp-series-2",
-				"scp-series-3", "scp-series-4", "joke-scps" };
+				"scp-series-3", "scp-series-4", "scp-series-5", "joke-scps" };
 
 		for (String page : series) {
 			Map<String, Object> params = new HashMap<String, Object>();
