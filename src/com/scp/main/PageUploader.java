@@ -107,7 +107,7 @@ public class PageUploader {
 	}
 
 	public static void uploadSeries() {
-		String regex = "(?m)<li><a href=\"\\/(.+)\">(.+)<\\/a> - (.+)<\\/li>";
+		String regex = ".+href=\\\"\\/(.+)\">(.+)<\\/a>.+- (.+?)<\\/.+>";
 		Pattern r = Pattern.compile(regex);
 		logger.info("Beggining gather of series pages: 1, 2, 3, 4 and jokes");
 		String[] series = new String[] { "scp-series	", "scp-series-2",
