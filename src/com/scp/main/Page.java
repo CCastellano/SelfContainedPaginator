@@ -14,8 +14,8 @@ public class Page {
 	
 	private Boolean scpPage = false;
 	private String scpTitle;
-	
-	private ArrayList<String> tags;
+
+    private ArrayList<String> tags = new ArrayList<>();
 
 	/**
 	 * 

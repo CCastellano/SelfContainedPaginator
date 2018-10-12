@@ -1,4 +1,4 @@
-package com.scp.main;
+package com.scp.rpc;
 
 import org.apache.ws.commons.util.NamespaceContextImpl;
 import org.apache.xmlrpc.common.TypeFactoryImpl;

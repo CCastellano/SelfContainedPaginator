@@ -1,66 +1,55 @@
 package com.scp.main;
 
-import java.net.URL;
-import java.sql.ResultSet;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import com.google.common.util.concurrent.RateLimiter;
-import org.apache.log4j.Logger;
-import org.apache.xmlrpc.XmlRpcException;
-import org.apache.xmlrpc.client.XmlRpcClient;
-import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
-import org.apache.xmlrpc.client.XmlRpcSun15HttpTransportFactory;
-import org.jsoup.Jsoup;
-import org.postgresql.util.PSQLException;
-
 import com.scp.connection.CloseableStatement;
 import com.scp.connection.Configs;
 import com.scp.connection.Connector;
 import com.scp.connection.Queries;
+import com.scp.rpc.RpcUtils;
+import org.apache.log4j.Logger;
+import org.jsoup.Jsoup;
+import org.postgresql.util.PSQLException;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 
 public class PageUploader {
 	private static final Logger logger = Logger.getLogger(PageUploader.class);
-	private static XmlRpcClientConfigImpl config;
-	private static XmlRpcClient client;
-	private static HashMap<String,Page> pages;
 
-	static {
-		config = new XmlRpcClientConfigImpl();
-		try {
-			config.setServerURL(new URL(Configs.getSingleProperty(
-					"wikidotServer").getValue()));
-			config.setBasicUserName(Configs.getSingleProperty("appName")
-					.getValue());
-			config.setBasicPassword(Configs.getSingleProperty("wikidotapikey")
-					.getValue());
-			config.setEnabledForExceptions(true);
-			config.setConnectionTimeout(10 * 1000);
-			config.setReplyTimeout(30 * 1000);
+    private ConcurrentHashMap<String, Page> pages;
 
-			client = new XmlRpcClient();
-			client.setTransportFactory(new XmlRpcSun15HttpTransportFactory(
-					client));
-			client.setTypeFactory(new XmlRpcTypeNil(client));
-			client.setConfig(config);
 
-		} catch (Exception e) {
-			logger.error("There was an exception", e);
-		}
+    public PageUploader() {
+        loadDatabasePages();
+        loadDatabaseTags();
+        cleanUpPages();
+        gatherMetadata();
+        uploadSeries();
+    }
 
-	}
+    public static void main(String[] args) {
+        try {
+            new PageUploader();
+            CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deleteOldPages"));
+            stmt.executeUpdate();
+            stmt = Connector.getStatement(Queries.getQuery("deleteOldtags"));
+            stmt.executeUpdate();
+            StafflistExtractor.updateStaff();
+            logger.info("Completed site upload.");
+        } catch (Exception e) {
+            logger.error("Error checking if update required.", e);
+        }
+    }
 
-	private static void loadPages() {
-		pages = new HashMap<String,Page>();
-		//pageTitles = new HashSet<String>();
+    private void loadDatabasePages() {
+        pages = new ConcurrentHashMap<>();
 		try {
 			CloseableStatement stmt = Connector.getStatement(Queries
 					.getQuery("getStoredPages"));
@@ -89,24 +78,7 @@ public class PageUploader {
 		}
 	}
 
-	public static void main(String[] args) {
-		try {
-			loadPages();
-			getTags();
-			listPage();
-			gatherMetadata();
-			uploadSeries();
-			
-			CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deleteOldtags"));
-			stmt.executeUpdate();
-			StafflistExtractor.updateStaff();
-			logger.info("Completed site upload.");
-		} catch (Exception e) {
-			logger.error("Error checking if update required.", e);
-		}
-	}
-
-	public static void uploadSeries() {
+    private void uploadSeries() {
 		String regex = ".+href=\\\"\\/(.+)\">(.+)<\\/a>.+- (.+?)<\\/.+>";
 		Pattern r = Pattern.compile(regex);
 		logger.info("Beggining gather of series pages: 1, 2, 3, 4 and jokes");
@@ -120,7 +92,7 @@ public class PageUploader {
 
 			try {
 				@SuppressWarnings("unchecked")
-				HashMap<String, Object> result = (HashMap<String, Object>) pushToAPI(
+                HashMap<String, Object> result = (HashMap<String, Object>) RpcUtils.pushToAPI(
 						"pages.get_one", params);
 
 				String[] lines = ((String) result.get("html")).split("\n");
@@ -173,9 +145,8 @@ public class PageUploader {
 		logger.info("Finished gathering series pages");
 	}
 
-	private static Map<String, ArrayList<String>> pageTags = new HashMap<>();
 
-	private static void getTags(){
+    private void loadDatabaseTags() {
 		logger.info("Gathering current tags.");
 		int tags = 0;
 		try {
@@ -183,12 +154,7 @@ public class PageUploader {
 					Queries.getQuery("getAllTags"));
 			ResultSet rs = stmt.execute();
 			while(rs != null && rs.next()){
-				String page = rs.getString("pagename");
-				String tag = rs.getString("tag");
-				if(!pageTags.containsKey(page)){
-					pageTags.put(page, new ArrayList<String>());
-				}
-				pageTags.get(page).add(tag);
+                pages.get(rs.getString("pagename")).getTags().add(rs.getString("tag"));
 				tags++;
 			}
 			rs.close();
@@ -196,10 +162,10 @@ public class PageUploader {
 		}catch(Exception e){
 			logger.error("Exception trying to get all pagetags.",e);
 		}
-		logger.info("Gathered " + tags + " total tags for: " + pageTags.size());
-	}
+        logger.info("Gathered " + tags);
+    }
 
-	private static void gatherMetadata() {
+    private void gatherMetadata() {
 		try {
 			logger.info("Gathering metadata.");
 			int j = 0;
@@ -224,62 +190,53 @@ public class PageUploader {
 					e);
 		}
 	}
-	
-	
 
-	private static Object pushToAPI(String method, Object... params)
-			throws XmlRpcException {
-		return (Object) client.execute(method, params);
-	}
 
-	public static void listPage() {
-		Map<String, Object> params = new HashMap<String, Object>();
-		params.put("site", Configs.getSingleProperty("site").getValue());
+    private void cleanUpPages() {
 		try {
 			logger.info("Beginning site-wide page gather");
-			Object[] result = (Object[]) pushToAPI("pages.select", params);
-			// Convert result to a String[]
-			HashSet<String> pageList = new HashSet<String>();
-			for (int i = 0; i < result.length; i++) {
-				pageList.add( (String) result[i]);
-			}
-			for (String str : pageList) {
-				if(!pages.containsKey(str)) {
-					try {
-						CloseableStatement stmt = Connector.getStatement(
-								Queries.getQuery("insertPage"), str, str);
-						stmt.executeUpdate();
-						pages.put(str, new Page(str));
-					} catch (Exception e) {
-						if (!e.getMessage().contains("unique")) {
-							logger.error("Couldn't insert page name", e);
-						}
-					}
-				}
-			}
-			ArrayList<String> removals = new ArrayList<String>();
-			for(String str: pages.keySet()){
-				if(!pageList.contains(str)){
-					removals.add(str);
-					CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deletePage"),str);
-					stmt.executeUpdate();
-				}
-			}
-			for(String str: removals){
-				pages.remove(str);
-			}
+
+            Set<String> pageList = RpcUtils.listPages();
+
+            pageList.stream()
+                    .filter(pageName -> !pages.containsKey(pageName))
+                    .forEach(pageName -> {
+                        try {
+                            logger.info("Inserting new page: " + pageName);
+                            CloseableStatement stmt = Connector.getStatement(
+                                    Queries.getQuery("insertPage"), pageName, pageName);
+                            stmt.executeUpdate();
+                            pages.put(pageName, new Page(pageName));
+                        } catch (Exception e) {
+                            if (!e.getMessage().contains("unique")) {
+                                logger.error("Couldn't insert page name", e);
+                            }
+                        }
+                    });
+            pages.keySet().stream()
+                    .filter(pageName -> !pageList.contains(pageName))
+                    .forEach(pageName -> {
+                        try {
+                            logger.info("Deleting removed page: " + pageName);
+                            pages.remove(pageName);
+                            CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deletePage"), pageName);
+                            stmt.executeUpdate();
+                        } catch (SQLException e) {
+                            logger.error("Exception attempting to delete a page", e);
+                        }
+                    });
 			logger.info("Ending site-wide page gather");
 		} catch (Exception e) {
 			logger.error("There was an exception", e);
 		}
 	}
 
-	public static String getPageInfo(Page[] pages) {
+    private String getPageInfo(Page[] pageList) {
 		Map<String, Object> params = new HashMap<String, Object>();
 		params.put("site", Configs.getSingleProperty("site").getValue());
 		String[] pageNames = new String[10];
-		for (int i = 0; i < pages.length; i++) {
-			pageNames[i] = pages[i].getPageLink();
+        for (int i = 0; i < pageList.length; i++) {
+            pageNames[i] = pageList[i].getPageLink();
 		}
 		params.put("pages", pageNames);
 		ArrayList<String> keyswewant = new ArrayList<String>();
@@ -292,7 +249,7 @@ public class PageUploader {
 		try {
 			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 			@SuppressWarnings("unchecked")
-			HashMap<String, HashMap<String, Object>> result = (HashMap<String, HashMap<String, Object>>) pushToAPI(
+            HashMap<String, HashMap<String, Object>> result = (HashMap<String, HashMap<String, Object>>) RpcUtils.pushToAPI(
 					"pages.get_meta", params);
 
 			for (String targetName : result.keySet()) {
@@ -311,37 +268,33 @@ public class PageUploader {
 					Object[] tags = (Object[]) result.get(targetName).get(
 							"tags");
 
-					ArrayList<String> tagsToInsertForPage = new ArrayList<String>();
-					ArrayList<String> tagsToDeleteForPage = new ArrayList<String>();
+                    List<String> tagsToInsertForPage = new ArrayList<String>();
+                    List<String> tagsToDeleteForPage = new ArrayList<String>();
 					ArrayList<String> tagsOnWebVersion = new ArrayList<String>();
 
 					for (Object tag : tags) {
 						tagsOnWebVersion.add(tag.toString());
 
 					}
-					if(pageTags.get(targetName) != null){
+                    if (pages.get(targetName) != null) {
 
-						for(String tag: tagsOnWebVersion) {
-							if (!pageTags.get(targetName).contains(tag)) {
-								tagsToInsertForPage.add(tag);
-							}
-						}
+                        tagsToDeleteForPage = pages.get(targetName).getTags().stream()
+                                .filter(tag -> !tagsOnWebVersion.contains(tag))
+                                .collect(Collectors.toList());
 
-						for (String tag : pageTags.get(targetName)) {
-							if(!tagsOnWebVersion.contains(tag)){
-								tagsToDeleteForPage.add(tag);
-							}
-						}
+                        tagsToInsertForPage = tagsOnWebVersion.stream()
+                                .filter(tag -> !pages.get(targetName).getTags().contains(tag))
+                                .collect(Collectors.toList());
 
-					}else{
+                    } else {
 						tagsToInsertForPage.addAll(tagsOnWebVersion);
-						logger.info("No page tags for page: " + targetName);
+                        logger.info("No page found in the DB for page: " + targetName);
 					}
 
 
 					for (String tag : tagsToInsertForPage) {
 						try {
-							logger.info("CURRENT TAG: " + tag);
+                            logger.info("Inserting tag: " + tag + " for page: " + targetName);
 							CloseableStatement stmt = Connector.getStatement(
 									Queries.getQuery("insertPageTag"),
 									targetName, tag);
@@ -368,6 +321,7 @@ public class PageUploader {
 					}
 
 					for (String tag : tagsToDeleteForPage) {
+                        logger.info("Removing tag: " + tag + " for page: " + targetName);
 						CloseableStatement stmt = Connector.getStatement(
 								Queries.getQuery("deletePageTag"), targetName,
 								tag);
