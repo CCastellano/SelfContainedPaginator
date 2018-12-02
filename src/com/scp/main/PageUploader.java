@@ -30,9 +30,11 @@ public class PageUploader {
     public PageUploader() {
         loadDatabasePages();
         loadDatabaseTags();
-        cleanUpPages();
-        gatherMetadata();
-        uploadSeries();
+        boolean clean = cleanUpPages();
+        if (clean) {
+            gatherMetadata();
+            uploadSeries();
+        }
     }
 
     public static void main(String[] args) {
@@ -192,43 +194,49 @@ public class PageUploader {
 	}
 
 
-    private void cleanUpPages() {
+    private boolean cleanUpPages() {
 		try {
 			logger.info("Beginning site-wide page gather");
 
             Set<String> pageList = RpcUtils.listPages();
-
-            pageList.stream()
-                    .filter(pageName -> !pages.containsKey(pageName))
-                    .forEach(pageName -> {
-                        try {
-                            logger.info("Inserting new page: " + pageName);
-                            CloseableStatement stmt = Connector.getStatement(
-                                    Queries.getQuery("insertPage"), pageName, pageName);
-                            stmt.executeUpdate();
-                            pages.put(pageName, new Page(pageName));
-                        } catch (Exception e) {
-                            if (!e.getMessage().contains("unique")) {
-                                logger.error("Couldn't insert page name", e);
+            if (pageList != null) {
+                pageList.stream()
+                        .filter(pageName -> !pages.containsKey(pageName))
+                        .forEach(pageName -> {
+                            try {
+                                logger.info("Inserting new page: " + pageName);
+                                CloseableStatement stmt = Connector.getStatement(
+                                        Queries.getQuery("insertPage"), pageName, pageName);
+                                stmt.executeUpdate();
+                                pages.put(pageName, new Page(pageName));
+                            } catch (Exception e) {
+                                if (!e.getMessage().contains("unique")) {
+                                    logger.error("Couldn't insert page name", e);
+                                }
                             }
-                        }
-                    });
-            pages.keySet().stream()
-                    .filter(pageName -> !pageList.contains(pageName))
-                    .forEach(pageName -> {
-                        try {
-                            logger.info("Deleting removed page: " + pageName);
-                            pages.remove(pageName);
-                            CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deletePage"), pageName);
-                            stmt.executeUpdate();
-                        } catch (SQLException e) {
-                            logger.error("Exception attempting to delete a page", e);
-                        }
-                    });
-			logger.info("Ending site-wide page gather");
+                        });
+                pages.keySet().stream()
+                        .filter(pageName -> !pageList.contains(pageName))
+                        .forEach(pageName -> {
+                            try {
+                                logger.info("Deleting removed page: " + pageName);
+                                pages.remove(pageName);
+                                CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deletePage"), pageName);
+                                stmt.executeUpdate();
+                            } catch (SQLException e) {
+                                logger.error("Exception attempting to delete a page", e);
+                            }
+                        });
+                logger.info("Ending site-wide page gather");
+                return true;
+            } else {
+                logger.error("There was an issue with gathering the pagelist, aborting.");
+                return false;
+            }
 		} catch (Exception e) {
 			logger.error("There was an exception", e);
 		}
+        return false;
 	}
 
     private String getPageInfo(Page[] pageList) {

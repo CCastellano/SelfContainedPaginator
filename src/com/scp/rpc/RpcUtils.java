@@ -66,6 +66,7 @@ public class RpcUtils {
             }
         } catch (Exception e) {
             logger.error("There was an exception", e);
+            return null;
 
         }
 
