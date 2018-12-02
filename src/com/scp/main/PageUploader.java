@@ -7,6 +7,7 @@ import com.scp.connection.Connector;
 import com.scp.connection.Queries;
 import com.scp.rpc.RpcUtils;
 import org.apache.log4j.Logger;
+import org.apache.xmlrpc.XmlRpcException;
 import org.jsoup.Jsoup;
 import org.postgresql.util.PSQLException;
 
@@ -100,8 +101,8 @@ public class PageUploader {
 				for (String s : lines) {
 					Matcher m = r.matcher(s);
 					if (m.find()) {
-						pagelist.add(new String[] { m.group(1), m.group(2),
-								Jsoup.parse(m.group(3)).text() });
+                        pagelist.add(new String[]{m.group(1), m.group(2),
+                                Jsoup.parse(m.group(3)).text()});
 					}
 				}
 
@@ -109,14 +110,13 @@ public class PageUploader {
 				ArrayList<String[]> updateList = new ArrayList<String[]>();
 
 
-
 				for (String[] pageParts : pagelist) {
-					if(pages.containsKey(pageParts[0])){
+                    if (pages.containsKey(pageParts[0])) {
 						Page p = pages.get(pageParts[0]);
-						if(!p.getScpTitle().equalsIgnoreCase(pageParts[2])){
+                        if (!p.getScpTitle().equalsIgnoreCase(pageParts[2])) {
 							updateList.add(pageParts);
 						}
-					}else{
+                    } else {
 						insertPages.add(pageParts);
 					}
 				}
@@ -130,12 +130,12 @@ public class PageUploader {
 				for (String[] update : updateList) {
 					CloseableStatement stmt = Connector.getStatement(
 							Queries.getQuery("updateTitle"), update[1],
-							update[2],update[0]);
+                            update[2], update[0]);
 					stmt.executeUpdate();
 				}
 
-			} catch (Exception e) {
-				if (!e.getMessage().contains("unique")) {
+            } catch (SQLException | XmlRpcException e) {
+                if (e.getMessage() != null && !e.getMessage().contains("unique")) {
 					logger.error(
 							"There was an exception attempting to grab the series page metadata",
 							e);
