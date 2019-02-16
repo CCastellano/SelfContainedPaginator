@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 public class PageUploader {
 	private static final Logger logger = Logger.getLogger(PageUploader.class);
 
-    private ConcurrentHashMap<String, Page> pages;
+    private static ConcurrentHashMap<String, Page> pages;
 
 
     public PageUploader() {
@@ -35,6 +35,8 @@ public class PageUploader {
         if (clean) {
             gatherMetadata();
             uploadSeries();
+        } else {
+            logger.error("There was an issue, and we can't clean-run the upload.");
         }
     }
 

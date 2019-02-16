@@ -28,7 +28,7 @@ public class ExtractMetadata {
         }
         for(Metadata metadata : meta){
             CloseableStatement stmt = Connector.getStatement(
-                    Queries.getQuery("insertMeta"), metadata.getTitle().toLowerCase(), metadata.getUsername().toLowerCase(),
+                    Queries.getQuery("insertMetadata"), metadata.getTitle().toLowerCase(), metadata.getUsername().toLowerCase(),
                     metadata.getAuthorageType().toLowerCase(), metadata.getDate());
             stmt.executeUpdate();
         }
