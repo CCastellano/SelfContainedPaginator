@@ -27,10 +27,17 @@ public class ExtractMetadata {
             }
         }
         for(Metadata metadata : meta){
-            CloseableStatement stmt = Connector.getStatement(
-                    Queries.getQuery("insertMetadata"), metadata.getTitle().toLowerCase(), metadata.getUsername().toLowerCase(),
-                    metadata.getAuthorageType().toLowerCase(), metadata.getDate());
-            stmt.executeUpdate();
+            if (metadata.getDate().isEmpty()) {
+                CloseableStatement stmt = Connector.getStatement(
+                        Queries.getQuery("insertMetadataNoDate"), metadata.getTitle().toLowerCase(), metadata.getUsername().toLowerCase(),
+                        metadata.getAuthorageType().toLowerCase());
+                stmt.executeUpdate();
+            } else {
+                CloseableStatement stmt = Connector.getStatement(
+                        Queries.getQuery("insertMetadata"), metadata.getTitle().toLowerCase(), metadata.getUsername().toLowerCase(),
+                        metadata.getAuthorageType().toLowerCase(), metadata.getDate());
+                stmt.executeUpdate();
+            }
         }
     }
 }
