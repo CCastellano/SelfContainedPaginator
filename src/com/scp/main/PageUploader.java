@@ -5,6 +5,7 @@ import com.scp.connection.CloseableStatement;
 import com.scp.connection.Configs;
 import com.scp.connection.Connector;
 import com.scp.connection.Queries;
+import com.scp.extractors.metadata.ExtractMetadata;
 import com.scp.rpc.RpcUtils;
 import org.apache.log4j.Logger;
 import org.apache.xmlrpc.XmlRpcException;
@@ -45,6 +46,7 @@ public class PageUploader {
             stmt = Connector.getStatement(Queries.getQuery("deleteOldtags"));
             stmt.executeUpdate();
             StafflistExtractor.updateStaff();
+            ExtractMetadata.extractMetadata();
             logger.info("Completed site upload.");
         } catch (Exception e) {
             logger.error("Error checking if update required.", e);

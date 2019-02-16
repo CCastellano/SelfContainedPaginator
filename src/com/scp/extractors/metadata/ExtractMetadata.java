@@ -1,25 +1,20 @@
 package com.scp.extractors.metadata;
 
+import com.scp.connection.CloseableStatement;
+import com.scp.connection.Connector;
+import com.scp.connection.Queries;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
 
 public class ExtractMetadata {
 
-    public static void main(String[] args) throws Exception{
-        URL url;
-        InputStream is = null;
-        BufferedReader br;
-        String line;
-
-        url = new URL("http://www.scp-wiki.net/attribution-metadata");
+    public static void extractMetadata() throws Exception {
+        URL url = new URL("http://www.scp-wiki.net/attribution-metadata");
         Document doc = Jsoup.parse(url,3000);
 
         Element table = doc.select("table").get(0);
@@ -32,7 +27,10 @@ public class ExtractMetadata {
             }
         }
         for(Metadata metadata : meta){
-            System.out.println(metadata.toString());
+            CloseableStatement stmt = Connector.getStatement(
+                    Queries.getQuery("insertMeta"), metadata.getTitle().toLowerCase(), metadata.getUsername().toLowerCase(),
+                    metadata.getAuthorageType().toLowerCase(), metadata.getDate());
+            stmt.executeUpdate();
         }
     }
 }
