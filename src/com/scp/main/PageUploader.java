@@ -219,9 +219,13 @@ public class PageUploader {
                                 }
                             }
                         });
-                pages.keySet().stream()
-                        .filter(pageName -> !pageList.contains(pageName))
-                        .forEach(pageName -> {
+
+				List<String> pagesToRemove = pages.keySet().stream()
+						.filter(pageName -> !pageList.contains(pageName))
+						.collect(Collectors.toList());
+
+
+				for (String pageName : pagesToRemove) {
                             try {
                                 logger.info("Deleting removed page: " + pageName);
                                 pages.remove(pageName);
@@ -230,7 +234,9 @@ public class PageUploader {
                             } catch (SQLException e) {
                                 logger.error("Exception attempting to delete a page", e);
                             }
-                        });
+				}
+
+
                 logger.info("Ending site-wide page gather");
                 return true;
             } else {
