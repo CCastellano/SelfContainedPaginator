@@ -13,6 +13,14 @@ import java.util.ArrayList;
 
 public class ExtractMetadata {
 
+    public static void main(String[] args) {
+        try {
+            extractMetadata();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public static void extractMetadata() throws Exception {
         URL url = new URL("http://www.scp-wiki.net/attribution-metadata");
         Document doc = Jsoup.parse(url,3000);
