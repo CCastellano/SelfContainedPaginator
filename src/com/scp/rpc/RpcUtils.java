@@ -72,4 +72,21 @@ public class RpcUtils {
 
         return pageList;
     }
+
+    public static void main(String[] args) {
+        Map<String, Object> params = new HashMap<String, Object>();
+        params.put("site", "scp-wiki");
+        params.put("page", "scp-682");
+
+        try {
+            @SuppressWarnings("unchecked")
+            HashMap<String, Object> result = (HashMap<String, Object>) RpcUtils.pushToAPI(
+                    "pages.get_one", params);
+
+            int i = 0;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

@@ -33,6 +33,8 @@ public class StafflistExtractor {
 
     private static ArrayList<String> activityTypes = new ArrayList<String>();
     private static ArrayList<String> timeZones = new ArrayList<String>();
+    private static String dataRegex = "<td>(.*)<.*";
+    private final static Pattern dataPattern = Pattern.compile(dataRegex);
 
     private final static ArrayList<Staff> staffList = new ArrayList<>();
     private final static ArrayList<Staff> currentStaff = new ArrayList<>();
@@ -85,7 +87,6 @@ public class StafflistExtractor {
 
     }
 
-    private final static Pattern dataPattern = Pattern.compile(dataRegex);
 
     static void updateStaff() throws Exception {
         URL url;
@@ -229,7 +230,6 @@ public class StafflistExtractor {
         e.printStackTrace();}
     }
 
-    private static String dataRegex = "<td>(.*)<.*";
 
     private static void removeStaffMember(Staff staff) {
         try {
