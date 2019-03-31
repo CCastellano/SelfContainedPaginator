@@ -340,7 +340,6 @@ public class PageUploader {
                         stmt.executeUpdate();
 
                     }
-                    logger.info("Updatig metadata for: " + displayTitle);
                     CloseableStatement stmt = Connector
                             .getStatement(
                                     Queries.getQuery("updateMetadata"),
