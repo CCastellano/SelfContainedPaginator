@@ -17,15 +17,17 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 
 public class PageUploader {
-	private static final Logger logger = Logger.getLogger(PageUploader.class);
+    private static final Logger logger = Logger.getLogger(PageUploader.class);
 
     private static ConcurrentHashMap<String, Page> pages;
+    private static CopyOnWriteArrayList<String> blacklist;
 
 
     public PageUploader() {
@@ -57,136 +59,142 @@ public class PageUploader {
 
     private void loadDatabasePages() {
         pages = new ConcurrentHashMap<>();
-		try {
-			CloseableStatement stmt = Connector.getStatement(Queries
-					.getQuery("getStoredPages"));
-			ResultSet rs = stmt.getResultSet();
-			logger.info("Beginning load of Stored Pages");
-			while (rs != null && rs.next()) {
+        try {
+            CloseableStatement stmt = Connector.getStatement(Queries
+                    .getQuery("getStoredPages"));
+            ResultSet rs = stmt.getResultSet();
+            logger.info("Beginning load of Stored Pages");
+            while (rs != null && rs.next()) {
 
-				try {
-					pages.put(rs.getString("pagename"),
-							new Page(rs.getString("pagename") == null ? "" : rs.getString("pagename"),
-							rs.getString("title") == null ? "" : rs.getString("pagename"),
-							rs.getInt("rating"),
-							rs.getString("created_by") == null ? "" : rs.getString("created_by"),
-							rs.getTimestamp("created_on"),
-							rs.getBoolean("scpPage"),
-							rs.getString("scpTitle") == null ? "" : rs.getString("scpTitle")));
-				} catch (PSQLException e) {
-					logger.error("Couldn't create page, keep going", e);
-				}
+                try {
+                    pages.put(rs.getString("pagename"),
+                            new Page(rs.getString("pagename") == null ? "" : rs.getString("pagename"),
+                                    rs.getString("title") == null ? "" : rs.getString("pagename"),
+                                    rs.getInt("rating"),
+                                    rs.getString("created_by") == null ? "" : rs.getString("created_by"),
+                                    rs.getTimestamp("created_on"),
+                                    rs.getBoolean("scpPage"),
+                                    rs.getString("scpTitle") == null ? "" : rs.getString("scpTitle")));
+                } catch (PSQLException e) {
+                    logger.error("Couldn't create page, keep going", e);
+                }
 
-			}
-			rs.close();
-			stmt.close();
-		} catch (Exception e) {
-			logger.error("There was an exception retreiving stored pages", e);
-		}
-	}
+            }
+            rs.close();
+            stmt.close();
+        } catch (Exception e) {
+            logger.error("There was an exception retreiving stored pages", e);
+        }
+    }
 
     private void uploadSeries() {
-		String regex = ".+href=\\\"\\/(.+)\">(.+)<\\/a>.+- (.+?)<\\/.+>";
-		Pattern r = Pattern.compile(regex);
-		logger.info("Beggining gather of series pages: 1, 2, 3, 4 and jokes");
-		String[] series = new String[] { "scp-series	", "scp-series-2",
-				"scp-series-3", "scp-series-4", "scp-series-5", "joke-scps" };
+        String regex = ".+href=\\\"\\/(.+)\">(.+)<\\/a>.+- (.+?)<\\/.+>";
+        Pattern r = Pattern.compile(regex);
+        logger.info("Beggining gather of series pages: 1, 2, 3, 4 and jokes");
+        String[] series = new String[]{"scp-series	", "scp-series-2",
+                "scp-series-3", "scp-series-4", "scp-series-5", "joke-scps"};
 
-		for (String page : series) {
-			Map<String, Object> params = new HashMap<String, Object>();
-			params.put("site", "scp-wiki");
-			params.put("page", page);
+        for (String page : series) {
+            Map<String, Object> params = new HashMap<String, Object>();
+            params.put("site", "scp-wiki");
+            params.put("page", page);
 
-			try {
-				@SuppressWarnings("unchecked")
+            try {
+                @SuppressWarnings("unchecked")
                 HashMap<String, Object> result = (HashMap<String, Object>) RpcUtils.pushToAPI(
-						"pages.get_one", params);
+                        "pages.get_one", params);
 
-                Arrays.stream(((String) result.get("html")).split("\n"))
-                        .filter(line -> r.matcher(line).find())
-                        .map(line -> {
-                            Matcher m = r.matcher(line);
-                            m.matches();
-                            return new String[]{m.group(1), m.group(2),
-                                    Jsoup.parse(m.group(3)).text()};
-                        })
-                        .collect(Collectors.toList())
-                        .stream()
-                        .filter(pageParts -> pages.containsKey(pageParts[0]))
-                        .filter(pageParts -> !pages.get(pageParts[0]).getScpTitle().equalsIgnoreCase(pageParts[2]))
-                        .forEach(update -> {
-                            try {
-                                CloseableStatement stmt = Connector.getStatement(
-                                        Queries.getQuery("updateTitle"), update[1],
-                                        update[2], update[0]);
-                                stmt.executeUpdate();
-                            } catch (Exception e) {
-                                logger.error("There was an exception updatinga title: ", e);
-                            }
-                        });
+                String[] lines = ((String) result.get("html")).split("\n");
+                ArrayList<String[]> pagelist = new ArrayList<String[]>();
+                for (String s : lines) {
+                    Matcher m = r.matcher(s);
+                    if (m.find()) {
+                        pagelist.add(new String[]{m.group(1), m.group(2),
+                                Jsoup.parse(m.group(3)).text()});
+                    }
+                }
+
+                ArrayList<String[]> updateList = new ArrayList<>();
 
 
-            } catch (XmlRpcException e) {
+                for (String[] pageParts : pagelist) {
+                    if (pages.containsKey(pageParts[0]) && !blacklist.contains(pageParts[0].toLowerCase())) {
+                        Page p = pages.get(pageParts[0]);
+                        if (!p.getScpTitle().equalsIgnoreCase(pageParts[2])) {
+                            updateList.add(pageParts);
+                        }
+                    }
+                }
+                for (String[] update : updateList) {
+                    logger.info("Updating title for: " + update[0]);
+                    CloseableStatement stmt = Connector.getStatement(
+                            Queries.getQuery("updateTitle"), update[1],
+                            update[2], update[0]);
+                    stmt.executeUpdate();
+                }
+
+
+            } catch (SQLException | XmlRpcException e) {
                 if (e.getMessage() != null && !e.getMessage().contains("unique")) {
-					logger.error(
-							"There was an exception attempting to grab the series page metadata",
-							e);
-				}
-			}
-		}
-		logger.info("Finished gathering series pages");
-	}
+                    logger.error(
+                            "There was an exception attempting to grab the series page metadata",
+                            e);
+                }
+            }
+        }
+        logger.info("Finished gathering series pages");
+    }
 
 
     private void loadDatabaseTags() {
-		logger.info("Gathering current tags.");
-		int tags = 0;
-		try {
-			CloseableStatement stmt = Connector.getStatement(
-					Queries.getQuery("getAllTags"));
-			ResultSet rs = stmt.execute();
-			while(rs != null && rs.next()){
+        logger.info("Gathering current tags.");
+        int tags = 0;
+        try {
+            CloseableStatement stmt = Connector.getStatement(
+                    Queries.getQuery("getAllTags"));
+            ResultSet rs = stmt.execute();
+            while (rs != null && rs.next()) {
                 pages.get(rs.getString("pagename")).getTags().add(rs.getString("tag"));
-				tags++;
-			}
-			rs.close();
-			stmt.close();
-		}catch(Exception e){
-			logger.error("Exception trying to get all pagetags.",e);
-		}
+                tags++;
+            }
+            rs.close();
+            stmt.close();
+        } catch (Exception e) {
+            logger.error("Exception trying to get all pagetags.", e);
+        }
         logger.info("Gathered " + tags);
     }
 
     private void gatherMetadata() {
-		try {
-			logger.info("Gathering metadata.");
-			int j = 0;
-			Page[] pageSet = new Page[10];
-			RateLimiter limiter = RateLimiter.create(200.0 / 60.0);
-			for (String str : pages.keySet()) {
-				Page page = pages.get(str);
-					if (j < 10) {
-						pageSet[j] = page;
-						j++;
-					} else {
-						limiter.acquire();
-						getPageInfo(pageSet);
-						pageSet = new Page[10];
-						j = 0;
-					}
-			}
-			logger.info("Finished gathering metadata");
-		} catch (Exception e) {
-			logger.error(
-					"There was an error attempting to get pages in groups of ten",
-					e);
-		}
-	}
+        try {
+            logger.info("Gathering metadata.");
+            int j = 0;
+            Page[] pageSet = new Page[10];
+            RateLimiter limiter = RateLimiter.create(200.0 / 60.0);
+            for (String str : pages.keySet()) {
+                Page page = pages.get(str);
+                if (j < 10) {
+                    pageSet[j] = page;
+                    j++;
+                } else {
+                    limiter.acquire();
+                    getPageInfo(pageSet);
+                    pageSet = new Page[10];
+                    j = 0;
+                }
+            }
+            logger.info("Finished gathering metadata");
+        } catch (Exception e) {
+            logger.error(
+                    "There was an error attempting to get pages in groups of ten",
+                    e);
+        }
+    }
 
 
     private boolean cleanUpPages() {
-		try {
-			logger.info("Beginning site-wide page gather");
+        try {
+            logger.info("Beginning site-wide page gather");
 
             Set<String> pageList = RpcUtils.listPages();
             if (pageList != null) {
@@ -206,21 +214,21 @@ public class PageUploader {
                             }
                         });
 
-				List<String> pagesToRemove = pages.keySet().stream()
-						.filter(pageName -> !pageList.contains(pageName))
-						.collect(Collectors.toList());
+                blacklist = pages.keySet().stream()
+                        .filter(pageName -> !pageList.contains(pageName))
+                        .collect(Collectors.toCollection(CopyOnWriteArrayList::new));
 
 
-				for (String pageName : pagesToRemove) {
-                            try {
-                                logger.info("Deleting removed page: " + pageName);
-                                pages.remove(pageName);
-                                CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deletePage"), pageName);
-                                stmt.executeUpdate();
-                            } catch (SQLException e) {
-                                logger.error("Exception attempting to delete a page", e);
-                            }
-				}
+                for (String pageName : blacklist) {
+                    try {
+                        logger.info("Deleting removed page: " + pageName);
+                        pages.remove(pageName);
+                        CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deletePage"), pageName);
+                        stmt.executeUpdate();
+                    } catch (SQLException e) {
+                        logger.error("Exception attempting to delete a page", e);
+                    }
+                }
 
 
                 logger.info("Ending site-wide page gather");
@@ -229,57 +237,57 @@ public class PageUploader {
                 logger.error("There was an issue with gathering the pagelist, aborting.");
                 return false;
             }
-		} catch (Exception e) {
-			logger.error("There was an exception", e);
-		}
+        } catch (Exception e) {
+            logger.error("There was an exception", e);
+        }
         return false;
-	}
+    }
 
     private String getPageInfo(Page[] pageList) {
-		Map<String, Object> params = new HashMap<String, Object>();
-		params.put("site", Configs.getSingleProperty("site").getValue());
-		String[] pageNames = new String[10];
+        Map<String, Object> params = new HashMap<String, Object>();
+        params.put("site", Configs.getSingleProperty("site").getValue());
+        String[] pageNames = new String[10];
         for (int i = 0; i < pageList.length; i++) {
             pageNames[i] = pageList[i].getPageLink();
-		}
-		params.put("pages", pageNames);
-		ArrayList<String> keyswewant = new ArrayList<String>();
-		keyswewant.add("title_shown");
-		keyswewant.add("rating");
-		keyswewant.add("created_at");
-		keyswewant.add("title");
-		keyswewant.add("created_by");
-		keyswewant.add("tags");
-		try {
-			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-			@SuppressWarnings("unchecked")
+        }
+        params.put("pages", pageNames);
+        ArrayList<String> keyswewant = new ArrayList<String>();
+        keyswewant.add("title_shown");
+        keyswewant.add("rating");
+        keyswewant.add("created_at");
+        keyswewant.add("title");
+        keyswewant.add("created_by");
+        keyswewant.add("tags");
+        try {
+            SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+            @SuppressWarnings("unchecked")
             HashMap<String, HashMap<String, Object>> result = (HashMap<String, HashMap<String, Object>>) RpcUtils.pushToAPI(
-					"pages.get_meta", params);
+                    "pages.get_meta", params);
 
-			for (String targetName : result.keySet()) {
-				try {
-					// String title = (String)
-					// result.get(targetName).get("title");
-					String displayTitle = (String) result.get(targetName).get(
-							"title_shown");
-					Integer rating = (Integer) result.get(targetName).get(
-							"rating");
-					String creator = (String) result.get(targetName).get(
-							"created_by");
-					Date createdAt = df.parse((String) result.get(targetName)
-							.get("created_at"));
-					// For each page, if the tags don't match the database tags,
-					Object[] tags = (Object[]) result.get(targetName).get(
-							"tags");
+            for (String targetName : result.keySet()) {
+                try {
+                    // String title = (String)
+                    // result.get(targetName).get("title");
+                    String displayTitle = (String) result.get(targetName).get(
+                            "title_shown");
+                    Integer rating = (Integer) result.get(targetName).get(
+                            "rating");
+                    String creator = (String) result.get(targetName).get(
+                            "created_by");
+                    Date createdAt = df.parse((String) result.get(targetName)
+                            .get("created_at"));
+                    // For each page, if the tags don't match the database tags,
+                    Object[] tags = (Object[]) result.get(targetName).get(
+                            "tags");
 
                     List<String> tagsToInsertForPage = new ArrayList<String>();
                     List<String> tagsToDeleteForPage = new ArrayList<String>();
-					ArrayList<String> tagsOnWebVersion = new ArrayList<String>();
+                    ArrayList<String> tagsOnWebVersion = new ArrayList<String>();
 
-					for (Object tag : tags) {
-						tagsOnWebVersion.add(tag.toString());
+                    for (Object tag : tags) {
+                        tagsOnWebVersion.add(tag.toString());
 
-					}
+                    }
                     if (pages.get(targetName) != null) {
 
                         tagsToDeleteForPage = pages.get(targetName).getTags().stream()
@@ -291,70 +299,70 @@ public class PageUploader {
                                 .collect(Collectors.toList());
 
                     } else {
-						tagsToInsertForPage.addAll(tagsOnWebVersion);
+                        tagsToInsertForPage.addAll(tagsOnWebVersion);
                         logger.info("No page found in the DB for page: " + targetName);
-					}
+                    }
 
 
-					for (String tag : tagsToInsertForPage) {
-						try {
+                    for (String tag : tagsToInsertForPage) {
+                        try {
                             logger.info("Inserting tag: " + tag + " for page: " + targetName);
-							CloseableStatement stmt = Connector.getStatement(
-									Queries.getQuery("insertPageTag"),
-									targetName, tag);
-							stmt.executeUpdate();
-						} catch (PSQLException e) {
-							if (!e.getMessage().contains("unique")) {
-								if (e.getMessage().contains("not-null")) {
-									CloseableStatement stmt = Connector.getStatement(
-											Queries.getQuery("insertTag"), tag);
-									stmt.executeUpdate();
+                            CloseableStatement stmt = Connector.getStatement(
+                                    Queries.getQuery("insertPageTag"),
+                                    targetName, tag);
+                            stmt.executeUpdate();
+                        } catch (PSQLException e) {
+                            if (!e.getMessage().contains("unique")) {
+                                if (e.getMessage().contains("not-null")) {
+                                    CloseableStatement stmt = Connector.getStatement(
+                                            Queries.getQuery("insertTag"), tag);
+                                    stmt.executeUpdate();
 
-									stmt = Connector.getStatement(
-											Queries.getQuery("insertPageTag"),
-											targetName, tag);
-									stmt.executeUpdate();
+                                    stmt = Connector.getStatement(
+                                            Queries.getQuery("insertPageTag"),
+                                            targetName, tag);
+                                    stmt.executeUpdate();
 
 
-								} else {
-									logger.error(
-											"There was a problem inserting tags", e);
-								}
-							}
-						}
-					}
+                                } else {
+                                    logger.error(
+                                            "There was a problem inserting tags", e);
+                                }
+                            }
+                        }
+                    }
 
-					for (String tag : tagsToDeleteForPage) {
+                    for (String tag : tagsToDeleteForPage) {
                         logger.info("Removing tag: " + tag + " for page: " + targetName);
-						CloseableStatement stmt = Connector.getStatement(
-								Queries.getQuery("deletePageTag"), targetName,
-								tag);
-						stmt.executeUpdate();
-						
-					}
+                        CloseableStatement stmt = Connector.getStatement(
+                                Queries.getQuery("deletePageTag"), targetName,
+                                tag);
+                        stmt.executeUpdate();
 
-					CloseableStatement stmt = Connector
-							.getStatement(
-									Queries.getQuery("updateMetadata"),
-									displayTitle == null ? "unknown"
-											: displayTitle,
-									rating == null ? 0 : rating,
-									creator == null ? "unknown" : creator,
-									new java.sql.Timestamp(
-											createdAt == null ? System
-													.currentTimeMillis()
-													: createdAt.getTime()),
-									targetName);
+                    }
+                    logger.info("Updatig metadata for: " + displayTitle);
+                    CloseableStatement stmt = Connector
+                            .getStatement(
+                                    Queries.getQuery("updateMetadata"),
+                                    displayTitle == null ? "unknown"
+                                            : displayTitle,
+                                    rating == null ? 0 : rating,
+                                    creator == null ? "unknown" : creator,
+                                    new java.sql.Timestamp(
+                                            createdAt == null ? System
+                                                    .currentTimeMillis()
+                                                    : createdAt.getTime()),
+                                    targetName);
 
-					stmt.executeUpdate();
-				} catch (Exception e) {
-					logger.error("Error updating metadata", e);
-				}
-			}
-		} catch (Exception e) {
-			logger.error("There was an exception retreiving metadata", e);
-		}
+                    stmt.executeUpdate();
+                } catch (Exception e) {
+                    logger.error("Error updating metadata", e);
+                }
+            }
+        } catch (Exception e) {
+            logger.error("There was an exception retreiving metadata", e);
+        }
 
-		return "I couldn't find anything matching that, apologies.";
-	}
+        return "I couldn't find anything matching that, apologies.";
+    }
 }

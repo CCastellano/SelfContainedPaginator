@@ -22,22 +22,22 @@ public class StafflistExtractor {
     private final static Logger logger = Logger.getLogger(StafflistExtractor.class);
 
 
-    final static String userregex = ".*user:info\\/(.*)\"\\sonclick=.*userid=(.*)&amp;amp;size=.*return false;\">(.*)</a>";
+    private final static String userregex = ".*user:info\\/(.*)\"\\sonclick=.*userid=(.*)&amp;amp;size=.*return false;\">(.*)</a>";
     final static String sectionRegex = "<h1 id=\"toc[0-9]\"><span>(.*)</span.*";
-    final static String topregex = "<h1 id=\"toc[0-9]\"><span>(.*)</span></h1>";
-    final static String tdregex = "<td>(.*)<\\td>";
-    final static Pattern pattern = Pattern.compile(userregex);
+    private final static String topregex = "<h1 id=\"toc[0-9]\"><span>(.*)</span></h1>";
+    private final static String tdregex = "<td>(.*)<\\td>";
+    private final static Pattern pattern = Pattern.compile(userregex);
     final static Pattern tdPatter = Pattern.compile(tdregex);
-    final static Pattern topPattern = Pattern.compile(topregex);
-    final static ArrayList<String> categories = new ArrayList<>();
+    private final static Pattern topPattern = Pattern.compile(topregex);
+    private final static ArrayList<String> categories = new ArrayList<>();
 
     private static ArrayList<String> activityTypes = new ArrayList<String>();
     private static ArrayList<String> timeZones = new ArrayList<String>();
 
-    final static ArrayList<Staff> staffList = new ArrayList<>();
-    final static ArrayList<Staff> currentStaff = new ArrayList<>();
+    private final static ArrayList<Staff> staffList = new ArrayList<>();
+    private final static ArrayList<Staff> currentStaff = new ArrayList<>();
 
-    final static HashMap<String, List<Integer>> staffTeams = new HashMap<>();
+    private final static HashMap<String, List<Integer>> staffTeams = new HashMap<>();
 
 
     static {
@@ -85,8 +85,9 @@ public class StafflistExtractor {
 
     }
 
+    private final static Pattern dataPattern = Pattern.compile(dataRegex);
 
-    public static void updateStaff() throws Exception {
+    static void updateStaff() throws Exception {
         URL url;
         InputStream is = null;
         BufferedReader br;
@@ -120,12 +121,10 @@ public class StafflistExtractor {
     private static void staffUpload(){
         for(Staff staff: staffList){
             try {
-
-                 logger.info(staff.toString());
                 if (currentStaff.contains(staff)) {
                     staff.setStaff_id(currentStaff.get(currentStaff.indexOf(staff)).getStaff_id());
                     updateStaff(staff);
-                              logger.info("Updated staff for: " + staff.getUsername());
+                    //logger.info("Updated staff for: " + staff.getUsername());
                 } else {
                     staff.setStaff_id(addStaff(staff));
                     currentStaff.add(staff);
@@ -146,13 +145,10 @@ public class StafflistExtractor {
                         }
                     }
                 }
-                logger.info("checking captaincies for user: " + staff.getUsername());
                 if(staff.getCaptaincies() != null) {
                     logger.info("Captaincy for user: " + staff.getUsername());
                     for (String captaincies : staff.getCaptaincies()) {
                         captaincies = captaincies.trim();
-                        logger.info("Captaincy: " + captaincies);
-
                         insertCaptain(captaincies, staff.getStaff_id());
                         logger.info("Inserted captaincy for user.");
                     }
@@ -166,22 +162,6 @@ public class StafflistExtractor {
             if(!staffList.contains(staff)){
                 removeStaffMember(staff);
             }
-        }
-    }
-
-    private static void removeStaffMember(Staff staff){
-        try{
-            CloseableStatement stmt = Connector.getStatement(Queries.getQuery("remove_staff_captains"),staff.getStaff_id());
-            stmt.executeUpdate();
-            stmt.close();
-             stmt = Connector.getStatement(Queries.getQuery("remove_staff_from_teams"),staff.getStaff_id());
-            stmt.executeUpdate();
-            stmt.close();
-            stmt = Connector.getStatement(Queries.getQuery("remove_staff"),staff.getStaff_id());
-            stmt.executeUpdate();
-            stmt.close();
-        }catch(Exception e){
-            logger.error("Exception: ",e);
         }
     }
 
@@ -250,7 +230,22 @@ public class StafflistExtractor {
     }
 
     private static String dataRegex = "<td>(.*)<.*";
-    final static Pattern dataPattern = Pattern.compile(dataRegex);
+
+    private static void removeStaffMember(Staff staff) {
+        try {
+            CloseableStatement stmt = Connector.getStatement(Queries.getQuery("remove_staff_captains"), staff.getStaff_id());
+            stmt.executeUpdate();
+            stmt.close();
+            stmt = Connector.getStatement(Queries.getQuery("remove_staff_from_teams"), staff.getStaff_id());
+            stmt.executeUpdate();
+            stmt.close();
+            stmt = Connector.getStatement(Queries.getQuery("remove_staff"), staff.getStaff_id());
+            stmt.executeUpdate();
+            stmt.close();
+        } catch (Exception e) {
+            logger.error("Exception: ", e);
+        }
+    }
 
     private static void handleSection(String line, BufferedReader br, String type) throws Exception {
         List<String> rejected = new ArrayList<String>();
