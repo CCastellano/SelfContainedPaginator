@@ -120,7 +120,7 @@ public class PageUploader {
                 for (String[] pageParts : pagelist) {
                     if (pages.containsKey(pageParts[0]) && !blacklist.contains(pageParts[0].toLowerCase())) {
                         Page p = pages.get(pageParts[0]);
-                        if (!p.getScpTitle().equalsIgnoreCase(pageParts[2])) {
+                        if (p.getScpTitle() == null || !p.getScpTitle().equalsIgnoreCase(pageParts[2])) {
                             updateList.add(pageParts);
                         }
                     }
