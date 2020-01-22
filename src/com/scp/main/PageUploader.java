@@ -10,8 +10,15 @@ import com.scp.rpc.RpcUtils;
 import org.apache.log4j.Logger;
 import org.apache.xmlrpc.XmlRpcException;
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.nodes.TextNode;
 import org.postgresql.util.PSQLException;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
@@ -30,7 +37,7 @@ public class PageUploader {
     private static CopyOnWriteArrayList<String> blacklist;
 
 
-    public PageUploader() {
+    public PageUploader() throws IOException {
         loadDatabasePages();
         loadDatabaseTags();
         boolean clean = cleanUpPages();
@@ -87,7 +94,16 @@ public class PageUploader {
         }
     }
 
-    private void uploadSeries() {
+    public static int getResponseCode(String urlString) throws MalformedURLException, IOException {
+        URL u = new URL(urlString);
+        HttpURLConnection huc =  (HttpURLConnection)  u.openConnection();
+        huc.setRequestMethod("GET");
+        huc.connect();
+        return huc.getResponseCode();
+    }
+
+
+    private void uploadSeries() throws IOException {
         String regex = ".+href=\\\"\\/(.+)\">(.+)<\\/a>.+- (.+?)<\\/.+>";
         Pattern r = Pattern.compile(regex);
         logger.info("Beggining gather of series pages: 1, 2, 3, 4 and jokes");
@@ -95,26 +111,32 @@ public class PageUploader {
                 "scp-series-3", "scp-series-4", "scp-series-5", "joke-scps"};
 
         for (String page : series) {
-            Map<String, Object> params = new HashMap<String, Object>();
-            params.put("site", "scp-wiki");
-            params.put("page", page);
-
             try {
-                @SuppressWarnings("unchecked")
-                HashMap<String, Object> result = (HashMap<String, Object>) RpcUtils.pushToAPI(
-                        "pages.get_one", params);
-
-                String[] lines = ((String) result.get("html")).split("\n");
-                ArrayList<String[]> pagelist = new ArrayList<String[]>();
-                for (String s : lines) {
-                    Matcher m = r.matcher(s);
-                    if (m.find()) {
-                        pagelist.add(new String[]{m.group(1), m.group(2),
-                                Jsoup.parse(m.group(3)).text()});
-                    }
-                }
-
+                Document resultDoc = Jsoup.parse(new URL("http://scp-wiki.net/" + page), 30000);
+                List<Element> list = resultDoc.getElementsByClass("content-panel standalone series").get(0).getElementsByTag("ul").stream().map(element -> element.getElementsByTag("li")).collect(Collectors.toList()).stream().skip(1).flatMap(List::stream).collect(Collectors.toList());
                 ArrayList<String[]> updateList = new ArrayList<>();
+                ArrayList<String[]> pagelist = new ArrayList<>();
+
+                list.forEach(e -> {
+                    if(e.childNodes().size() != 2){
+                        Matcher m = r.matcher(e.toString());
+                        if(m.find()){
+                            pagelist.add(new String[]{m.group(1), m.group(2),
+                                    Jsoup.parse(m.group(3)).text()});
+                        }
+                    }else{
+                        if(e.childNodes().size() > 1) {
+                            pagelist.add(new String[]{e.getElementsByTag("a").attr("href").replace("/", ""),
+                                    ((TextNode) e.getElementsByTag("a").get(0).childNodes().get(0)).text(),
+                                    ((TextNode) e.childNode(1)).text().replaceFirst("-", "").trim()});
+                        }else{
+                            pagelist.add(new String[]{e.getElementsByTag("a").attr("href").replace("/", ""),
+                                    e.getElementsByTag("a").attr("href").replace("/", ""),
+                                    ((TextNode) e.childNode(0)).text().replaceFirst("-", "").trim()});
+                        }
+                    }
+                        });
+
 
 
                 for (String[] pageParts : pagelist) {
@@ -134,12 +156,8 @@ public class PageUploader {
                 }
 
 
-            } catch (SQLException | XmlRpcException e) {
-                if (e.getMessage() != null && !e.getMessage().contains("unique")) {
-                    logger.error(
-                            "There was an exception attempting to grab the series page metadata",
-                            e);
-                }
+            } catch (Exception e) {
+                logger.error("Something went wrong",e);
             }
         }
         logger.info("Finished gathering series pages");
