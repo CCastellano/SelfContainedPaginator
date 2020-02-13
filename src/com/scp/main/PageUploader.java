@@ -113,7 +113,8 @@ public class PageUploader {
         for (String page : series) {
             try {
                 Document resultDoc = Jsoup.parse(new URL("http://scp-wiki.net/" + page), 30000);
-                List<Element> list = resultDoc.getElementsByClass("content-panel standalone series").get(0).getElementsByTag("ul").stream().map(element -> element.getElementsByTag("li")).collect(Collectors.toList()).stream().skip(1).flatMap(List::stream).collect(Collectors.toList());
+                List<Element> list = page.equalsIgnoreCase("joke-scps") ? resultDoc.getElementsByClass("content-panel standalone series").get(0).getElementsByTag("ul").stream().map(element -> element.getElementsByTag("li")).collect(Collectors.toList()).stream().flatMap(List::stream).collect(Collectors.toList())
+                                : resultDoc.getElementsByClass("content-panel standalone series").get(0).getElementsByTag("ul").stream().map(element -> element.getElementsByTag("li")).collect(Collectors.toList()).stream().skip(1).flatMap(List::stream).collect(Collectors.toList());
                 ArrayList<String[]> updateList = new ArrayList<>();
                 ArrayList<String[]> pagelist = new ArrayList<>();
 
