@@ -35,12 +35,18 @@ public class PageUploader {
 
     private static ConcurrentHashMap<String, Page> pages;
     private static CopyOnWriteArrayList<String> blacklist;
-
+    private static boolean upload = true;
 
     public PageUploader() throws IOException {
         loadDatabasePages();
         loadDatabaseTags();
-        boolean clean = cleanUpPages();
+
+        boolean clean = false;
+        if(upload){
+            clean = cleanUpPages();
+        } else{
+            clean = true;
+        }
         if (clean) {
             gatherMetadata();
             uploadSeries();
@@ -52,12 +58,14 @@ public class PageUploader {
     public static void main(String[] args) {
         try {
             new PageUploader();
-            CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deleteOldPages"));
-            stmt.executeUpdate();
-            stmt = Connector.getStatement(Queries.getQuery("deleteOldtags"));
-            stmt.executeUpdate();
-            StafflistExtractor.updateStaff();
-            ExtractMetadata.extractMetadata();
+            if(upload) {
+                CloseableStatement stmt = Connector.getStatement(Queries.getQuery("deleteOldPages"));
+                stmt.executeUpdate();
+                stmt = Connector.getStatement(Queries.getQuery("deleteOldtags"));
+                stmt.executeUpdate();
+                StafflistExtractor.updateStaff();
+                ExtractMetadata.extractMetadata();
+            }
             logger.info("Completed site upload.");
         } catch (Exception e) {
             logger.error("Error checking if update required.", e);
@@ -150,10 +158,12 @@ public class PageUploader {
                 }
                 for (String[] update : updateList) {
                     logger.info("Updating title for: " + update[0]);
-                    CloseableStatement stmt = Connector.getStatement(
-                            Queries.getQuery("updateTitle"), update[1],
-                            update[2], update[0]);
-                    stmt.executeUpdate();
+                    if(upload) {
+                        CloseableStatement stmt = Connector.getStatement(
+                                Queries.getQuery("updateTitle"), update[1],
+                                update[2], update[0]);
+                        stmt.executeUpdate();
+                    }
                 }
 
 
@@ -191,16 +201,15 @@ public class PageUploader {
             Page[] pageSet = new Page[10];
             RateLimiter limiter = RateLimiter.create(200.0 / 60.0);
             for (String str : pages.keySet()) {
-                Page page = pages.get(str);
-                if (j < 10) {
-                    pageSet[j] = page;
-                    j++;
-                } else {
+                if(j >= 10){
                     limiter.acquire();
                     getPageInfo(pageSet);
                     pageSet = new Page[10];
                     j = 0;
                 }
+                Page page = pages.get(str);
+                pageSet[j] = page;
+                j++;
             }
             logger.info("Finished gathering metadata");
         } catch (Exception e) {
@@ -265,7 +274,7 @@ public class PageUploader {
     private String getPageInfo(Page[] pageList) {
         Map<String, Object> params = new HashMap<String, Object>();
         params.put("site", Configs.getSingleProperty("site").getValue());
-        String[] pageNames = new String[10];
+        String[] pageNames = new String[pageList.length];
         for (int i = 0; i < pageList.length; i++) {
             pageNames[i] = pageList[i].getPageLink();
         }
@@ -326,22 +335,25 @@ public class PageUploader {
                     for (String tag : tagsToInsertForPage) {
                         try {
                             logger.info("Inserting tag: " + tag + " for page: " + targetName);
-                            CloseableStatement stmt = Connector.getStatement(
-                                    Queries.getQuery("insertPageTag"),
-                                    targetName, tag);
-                            stmt.executeUpdate();
+                            if(upload) {
+                                CloseableStatement stmt = Connector.getStatement(
+                                        Queries.getQuery("insertPageTag"),
+                                        targetName, tag);
+                                stmt.executeUpdate();
+                            }
                         } catch (PSQLException e) {
                             if (!e.getMessage().contains("unique")) {
                                 if (e.getMessage().contains("not-null")) {
-                                    CloseableStatement stmt = Connector.getStatement(
-                                            Queries.getQuery("insertTag"), tag);
-                                    stmt.executeUpdate();
+                                    if(upload) {
+                                        CloseableStatement stmt = Connector.getStatement(
+                                                Queries.getQuery("insertTag"), tag);
+                                        stmt.executeUpdate();
 
-                                    stmt = Connector.getStatement(
-                                            Queries.getQuery("insertPageTag"),
-                                            targetName, tag);
-                                    stmt.executeUpdate();
-
+                                        stmt = Connector.getStatement(
+                                                Queries.getQuery("insertPageTag"),
+                                                targetName, tag);
+                                        stmt.executeUpdate();
+                                    }
 
                                 } else {
                                     logger.error(
@@ -353,26 +365,30 @@ public class PageUploader {
 
                     for (String tag : tagsToDeleteForPage) {
                         logger.info("Removing tag: " + tag + " for page: " + targetName);
-                        CloseableStatement stmt = Connector.getStatement(
-                                Queries.getQuery("deletePageTag"), targetName,
-                                tag);
-                        stmt.executeUpdate();
+                        if(upload) {
+                            CloseableStatement stmt = Connector.getStatement(
+                                    Queries.getQuery("deletePageTag"), targetName,
+                                    tag);
+                            stmt.executeUpdate();
+                        }
 
                     }
-                    CloseableStatement stmt = Connector
-                            .getStatement(
-                                    Queries.getQuery("updateMetadata"),
-                                    displayTitle == null ? "unknown"
-                                            : displayTitle,
-                                    rating == null ? 0 : rating,
-                                    creator == null ? "unknown" : creator,
-                                    new java.sql.Timestamp(
-                                            createdAt == null ? System
-                                                    .currentTimeMillis()
-                                                    : createdAt.getTime()),
-                                    targetName);
+                    if(upload) {
+                        CloseableStatement stmt = Connector
+                                .getStatement(
+                                        Queries.getQuery("updateMetadata"),
+                                        displayTitle == null ? "unknown"
+                                                : displayTitle,
+                                        rating == null ? 0 : rating,
+                                        creator == null ? "unknown" : creator,
+                                        new java.sql.Timestamp(
+                                                createdAt == null ? System
+                                                        .currentTimeMillis()
+                                                        : createdAt.getTime()),
+                                        targetName);
 
-                    stmt.executeUpdate();
+                        stmt.executeUpdate();
+                    }
                 } catch (Exception e) {
                     logger.error("Error updating metadata", e);
                 }
