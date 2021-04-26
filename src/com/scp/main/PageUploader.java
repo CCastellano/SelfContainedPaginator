@@ -63,7 +63,11 @@ public class PageUploader {
                 stmt.executeUpdate();
                 stmt = Connector.getStatement(Queries.getQuery("deleteOldtags"));
                 stmt.executeUpdate();
+try{
                 StafflistExtractor.updateStaff();
+}catch(Exception e){
+logger.error(e);
+}
                 ExtractMetadata.extractMetadata();
             }
             logger.info("Completed site upload.");
