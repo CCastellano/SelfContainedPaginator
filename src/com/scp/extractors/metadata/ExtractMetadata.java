@@ -25,7 +25,7 @@ public class ExtractMetadata {
 
     public static void extractMetadata() throws Exception {
         URL url = new URL("http://www.scp-wiki.net/attribution-metadata");
-        Document doc = Jsoup.parse(url,3000);
+        Document doc = Jsoup.parse(url,30000);
 
         Element table = doc.select("table").get(0);
         Elements rows = table.select("tr");
